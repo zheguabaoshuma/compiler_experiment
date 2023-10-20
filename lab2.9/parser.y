@@ -4,9 +4,16 @@
     #include<stdbool.h>
     #include<ctype.h>
     #include<string.h>
+
+    
     #define YYSTYPE double
     #define TABLE_SIZE 100
     #define INT_MIN -2147483648
+    #define INTTYPE 2
+    #define FLOATTYPE 3
+    #define STRINGTYPE 2
+    #define CHARTYPE 1
+    #define DOUBLETYPE 4
     int yylex();
     extern int yyparse();
     FILE* yyin;
@@ -22,15 +29,19 @@
     struct KeyValue {
         char* key;
         double value;
-        int kind;//1 is int, 2 is double
+        YYSTYPE* VALUEPTR;
+        bool isFunction;
+        int kind;
         };
     struct HashTable {
         struct KeyValue table[TABLE_SIZE];
         };
     bool DeclFlag=false;
+    bool isAssignment=false;
     struct HashTable ht;
     double get(struct HashTable* ht, const char* key);
 %}
+
 
 %token NUMBER ADD MINUS DIVIDE MOD TIMES INT FLOAT ID VOID CONST IF ELSE RETURN CONTINUE BREAK CHAR DOUBLE
 
@@ -39,54 +50,64 @@
 %right UMINUS
 
 %%
+compunit: block
+        | compunit block
+        ;
 
 block   :   '{' lines '}'
         |    lines
         ;
 
 lines   :   lines stmt
-        |   lines ';' 
+        |   lines ';' lines
         |   lines funcdecl
         |
         ;
 
 stmt    :   expr ';' {
-        printf("Expression value is %f\n",$1);
+        printf("Expression value is %f\n",($1));
         }
         |   decl ';' 
         |   assn ';'
         ;
 
 expr    :   NUMBER {
-                $$=ComputeValue;
+                ($$)=ComputeValue;
                 // printf("%f ",ComputeValue);
                 }
         |   expr ADD expr {
-                $$=$1+$3;
+                ($$)=($1)+($3);
                 // printf("+ ");
                 } 
         |   expr MINUS expr {
-                $$=$1-$3;
+                ($$)=($1)-($3);
                 // printf("- ");
                 } 
         |   expr TIMES expr {
-                $$=$1*$3;
+                ($$)=($1)*($3);
                 // printf("* ");
                 } 
         |   expr DIVIDE expr {
-                $$=$1/$3;
+                ($$)=($1)/($3);
                 // printf("/ ");
                 } 
         |   expr MOD expr {
-                $$=(int)$1%(int)$3;}
-        |   '('expr')' {$$=$2;}
-        |   '-' expr %prec UMINUS {$$=-$2;}
+                ($$)=(int)($1)%(int)($3);}
+        |   '('expr')' {($$)=($2);}
+        |   '-' expr %prec UMINUS {($$)=-($2);}
         |   ID{
                 double value=get(&ht,LastID);
+                int k=get_kind(&ht,LastID);
                 if(value==INT_MIN)yyerror("varible not found");
-                else $$=value;
+                switch(k){
+                        case INTTYPE:break;
+                        case DOUBLETYPE:break;
+                        case FLOATTYPE:break;
+                        case CHARTYPE:break;
                 }
-        |   expr ',' expr{$$=$1;}
+                ($$)=value;
+                }
+        |   expr ',' expr{($$)=($1);}
         
         ;
 
@@ -106,25 +127,39 @@ conj    :   IF
         ;
 
 decl    :   keyword ID  {printf("variable ");
-                        if(get_kind(&ht,DeclID)==1)
+                        if(get_kind(&ht,DeclID)==INTTYPE)
                                 printf("int ");
-                        else if(get_kind(&ht,DeclID)==2)
+                        else if(get_kind(&ht,DeclID)==FLOATTYPE)
                                 printf("float ");
-                        printf(DeclID);printf(" is added and set to %f\n",0);}
+                        else if(get_kind(&ht,DeclID)==DOUBLETYPE)
+                                printf("double ");
+                        else if(get_kind(&ht,DeclID)==CHARTYPE)
+                                printf("char ");
+                        printf(DeclID);printf(" is added and set to %f\n",0);
+                        }
         |   keyword ID '=' expr {modify(&ht,DeclID,$4);printf("variable ");
-                        if(get_kind(&ht,DeclID)==1)
+                        if(get_kind(&ht,DeclID)==INTTYPE)
                                 printf("int ");
-                        else if(get_kind(&ht,DeclID)==2)
+                        else if(get_kind(&ht,DeclID)==FLOATTYPE)
                                 printf("float ");
-                        printf(DeclID);printf(" is added and set to %f\n",$4);}
+                        else if(get_kind(&ht,DeclID)==DOUBLETYPE)
+                                printf("double ");
+                        else if(get_kind(&ht,DeclID)==CHARTYPE)
+                                printf("char ");
+                        printf(DeclID);printf(" is added and set to %f\n",($4));}
         ;
 
 assn    :   ID '=' expr {
         double last_value=get(&ht,AssnID);
-        modify(&ht,AssnID,$3);
-        printf("variable ");
-        printf(AssnID);
-        printf(" is set to %f from %f\n",$3,last_value);
+        modify(&ht,AssnID,(double)($3));
+        int k=get_kind(&ht,LastID);
+                switch(k){
+                        case INTTYPE:printf("variable %s is set to %d from %d\n",AssnID,(int)($3),(int)last_value);break;
+                        case DOUBLETYPE:printf("variable %s is set to %f from %f\n",AssnID,($3),last_value);break;
+                        case FLOATTYPE:printf("variable %s is set to %f from %f\n",AssnID,($3),last_value);break;
+                        case CHARTYPE:printf("variable %s is set to %c from %c\n",AssnID,(char)($3),(char)last_value);break;
+                }
+        isAssignment=false;
         }
         ;
 
@@ -132,8 +167,12 @@ paras   :   decl{printf("in paras\n");}
         |   paras ',' paras
         ;
 
-funcdecl:   keyword ID '(' paras ')' block{printf("In function block\n");}
-        |   keyword ID '(' ')' block{printf("In function block\n");}
+funcdecl:   keyword ID '(' paras ')' block{
+                                        printf("in function block\n");
+                                        }
+        |   keyword ID '(' ')' block{
+                printf("In function block\n");
+                }
         ;
 
 
@@ -154,7 +193,9 @@ unsigned int hash(const char* key) {
 void insert(struct HashTable* ht, const char* key, double value, int kind) {
     unsigned int index = hash(key);
     ht->table[index].key = strdup(key);
-    ht->table[index].value = value;
+    //ht->table[index].value = value;
+    ht->table[index].VALUEPTR=(double*)malloc(sizeof(double));
+    *(ht->table[index].VALUEPTR)=value;
     ht->table[index].kind = kind;
 }
 
@@ -162,7 +203,7 @@ double get(struct HashTable* ht, const char* key) {
     unsigned int index = hash(key);
     
     if (ht->table[index].key != NULL && strcmp(ht->table[index].key, key) == 0) {
-        return ht->table[index].value;
+        return *(ht->table[index].VALUEPTR);
     } else {
         return INT_MIN; 
     }
@@ -182,9 +223,17 @@ void modify(struct HashTable* ht, const char* key, double newValue) {
     unsigned int index = hash(key);
     printf("new value is %f\n",newValue);
     if (ht->table[index].key != NULL && strcmp(ht->table[index].key, key) == 0) {
-        ht->table[index].value = newValue;
+        *(ht->table[index].VALUEPTR) = newValue;
         
     } 
+}
+
+void modifyFuctionTag(struct HashTable* ht,const char* key){
+        unsigned int index=hash(key);
+        printf("%s is a function\n",key);
+        if(ht->table[index].key!=NULL&&strcmp(ht->table[index].key,key)==0){
+                ht->table[index].isFunction=true;
+        }
 }
 
 
@@ -230,7 +279,6 @@ int yylex(){
 
                 while(resi>1)resi/=10;
                 ComputeValue=value+resi;
-                printf("NUMBER %f\n",ComputeValue);
                 LastChar='0';
                 return NUMBER;
         }
@@ -238,7 +286,7 @@ int yylex(){
                 printf("ADD \'+\'\n");
                 LastChar=t;return ADD;}
         else if(t=='-') {
-                if(LastChar>='0'&&LastChar<='9'){
+                if((LastChar>='0'&&LastChar<='9')||LastChar=='d'){//if LastChar is a number or id, means this - should be minus 
                         printf("MINUS \'-\'\n");
                         LastChar=t;
                         return MINUS; 
@@ -259,7 +307,12 @@ int yylex(){
                 LastChar=t;return MOD;}
         else if(t=='(') {
                 printf("Left Bracket \'(\'\n");
-                LastChar=t;LeftBrackets++;return '(';}
+                LastChar=t;LeftBrackets++;
+                if(LastChar=='d')//means a ( appear right after an id, assume it a function
+                {
+                        modifyFuctionTag(&ht,DeclID);
+                }
+                return '(';}
         else if(t==')') {
                 printf("Right Bracket \')\'\n");
                 LastChar=t;LeftBrackets--;return ')';}
@@ -276,6 +329,7 @@ int yylex(){
                 printf("Comma \',\'\n");
                 return ',';}        
         else if((t>='a'&&t<='z')||(t>='A'&&t<='Z')||t=='_'){
+                
                 char identifier[100]="";
                 identifier[0]=t;
                 int ptr=1;
@@ -301,6 +355,20 @@ int yylex(){
                         LastKind='f';
                         return FLOAT;
                 }
+                else if(strcmp(identifier,"double")==0){
+                        printf("DOUBLE \'double\'\n");
+                        DeclFlag=true;
+                        LastChar='D';
+                        LastKind='D';//D is double, d is id
+                        return DOUBLE;
+                }
+                else if(strcmp(identifier,"char")==0){
+                        printf("CHAR \'char\'\n");
+                        DeclFlag=true;
+                        LastChar='c';
+                        LastKind='c';
+                        return CHAR;
+                }
                 else if(strcmp(identifier,"if")==0){
                         printf("IF \'if\'\n");
                         DeclFlag=true;
@@ -311,9 +379,13 @@ int yylex(){
                 else {
                         if(DeclFlag){
                                 if(LastKind=='i')
-                                        insert(&ht,identifier,0,1);
+                                        insert(&ht,identifier,0,INTTYPE);
                                 else if(LastKind=='f')
-                                        insert(&ht,identifier,0,2);
+                                        insert(&ht,identifier,0,FLOATTYPE);
+                                else if(LastKind=='c')
+                                        insert(&ht,identifier,0,CHARTYPE);
+                                else if(LastKind=='D')
+                                        insert(&ht,identifier,0,DOUBLETYPE);
                                 memcpy(DeclID,identifier,(ptr+1)*sizeof(char));
                                 DeclFlag=false;
                         }
@@ -322,15 +394,28 @@ int yylex(){
                         printf("Identifier \'");
                         printf(identifier);
                         printf("\'\n");
-                        LastChar='0';//same reason as NUMBER condition
+                        LastChar='d';//d means id
                         return ID;
                 }
 
         }
         else if(t=='='){
+                isAssignment=true;
                 memcpy(AssnID,LastID,100*sizeof(char));
                 printf("Assignment \'=\'\n");
-                return '=';}
+                return '=';
+                }
+        else if(t=='\''){
+                printf("Single Quotation \' \n");
+                t=getc(stdin);
+                printf("Character %c\n",t);
+                char check=getc(stdin);
+                if(check!='\'') yyerror("Cannot recognize character");
+                else printf("Single Quotation \' \n");
+                ComputeValue=(double)t;
+                LastChar='0';//same reason as NUMBER
+                return NUMBER;
+        }
         else return t;
     }
 }

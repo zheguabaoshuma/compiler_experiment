@@ -1,0 +1,69 @@
+identifier 'main'        [LeadingSpace] Loc=<main.cpp:4:5>
+l_paren '('             Loc=<main.cpp:4:9>
+r_paren ')'             Loc=<main.cpp:4:10>
+l_brace '{'      [LeadingSpace] Loc=<main.cpp:4:12>
+identifier 'std'         [StartOfLine] [LeadingSpace]   Loc=<main.cpp:6:5>
+coloncolon '::'         Loc=<main.cpp:6:8>
+identifier 'cout'               Loc=<main.cpp:6:10>
+lessless '<<'           Loc=<main.cpp:6:14>
+string_literal '"in debugging"'         Loc=<main.cpp:6:16>
+semi ';'                Loc=<main.cpp:6:30>
+int 'int'        [StartOfLine] [LeadingSpace]   Loc=<main.cpp:8:5>
+identifier 'i'   [LeadingSpace] Loc=<main.cpp:8:9>
+comma ','               Loc=<main.cpp:8:10>
+identifier 'n'          Loc=<main.cpp:8:11>
+comma ','               Loc=<main.cpp:8:12>
+identifier 'f'          Loc=<main.cpp:8:13>
+semi ';'                Loc=<main.cpp:8:14>
+identifier 'std'         [StartOfLine] [LeadingSpace]   Loc=<main.cpp:9:5>
+coloncolon '::'         Loc=<main.cpp:9:8>
+identifier 'cin'                Loc=<main.cpp:9:10>
+greatergreater '>>'             Loc=<main.cpp:9:13>
+identifier 'n'          Loc=<main.cpp:9:15>
+semi ';'                Loc=<main.cpp:9:16>
+identifier 'i'   [StartOfLine] [LeadingSpace]   Loc=<main.cpp:10:5>
+equal '='               Loc=<main.cpp:10:6>
+numeric_constant '2'            Loc=<main.cpp:10:7>
+semi ';'                Loc=<main.cpp:10:8>
+identifier 'f'   [StartOfLine] [LeadingSpace]   Loc=<main.cpp:11:5>
+equal '='               Loc=<main.cpp:11:6>
+numeric_constant '1'            Loc=<main.cpp:11:7>
+semi ';'                Loc=<main.cpp:11:8>
+while 'while'    [StartOfLine] [LeadingSpace]   Loc=<main.cpp:12:5>
+l_paren '('             Loc=<main.cpp:12:10>
+identifier 'i'          Loc=<main.cpp:12:11>
+lessequal '<='          Loc=<main.cpp:12:12>
+identifier 'n'          Loc=<main.cpp:12:14>
+r_paren ')'             Loc=<main.cpp:12:15>
+l_brace '{'             Loc=<main.cpp:12:16>
+identifier 'f'   [StartOfLine] [LeadingSpace]   Loc=<main.cpp:13:9>
+equal '='               Loc=<main.cpp:13:10>
+identifier 'f'          Loc=<main.cpp:13:11>
+plus '+'                Loc=<main.cpp:13:12>
+identifier 'i'          Loc=<main.cpp:13:13>
+semi ';'                Loc=<main.cpp:13:14>
+identifier 'i'   [StartOfLine] [LeadingSpace]   Loc=<main.cpp:14:9>
+equal '='               Loc=<main.cpp:14:10>
+identifier 'i'          Loc=<main.cpp:14:11>
+plus '+'                Loc=<main.cpp:14:12>
+numeric_constant '1'            Loc=<main.cpp:14:13>
+semi ';'                Loc=<main.cpp:14:14>
+r_brace '}'      [StartOfLine] [LeadingSpace]   Loc=<main.cpp:15:5>
+identifier 'std'         [StartOfLine] [LeadingSpace]   Loc=<main.cpp:16:5>
+coloncolon '::'         Loc=<main.cpp:16:8>
+identifier 'cout'               Loc=<main.cpp:16:10>
+lessless '<<'           Loc=<main.cpp:16:14>
+identifier 'f'          Loc=<main.cpp:16:16>
+lessless '<<'           Loc=<main.cpp:16:17>
+identifier 'std'                Loc=<main.cpp:16:19>
+coloncolon '::'         Loc=<main.cpp:16:22>
+identifier 'endl'               Loc=<main.cpp:16:24>
+semi ';'                Loc=<main.cpp:16:28>
+identifier 'std'         [StartOfLine] [LeadingSpace]   Loc=<main.cpp:17:5>
+coloncolon '::'         Loc=<main.cpp:17:8>
+identifier 'cout'               Loc=<main.cpp:17:10>
+lessless '<<'           Loc=<main.cpp:17:14>
+numeric_constant '10'           Loc=<main.cpp:17:16 <Spelling=main.cpp:2:11>>
+semi ';'                Loc=<main.cpp:17:17>
+r_brace '}'      [StartOfLine]  Loc=<main.cpp:18:1>
+eof ''          Loc=<main.cpp:18:2>

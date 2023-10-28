@@ -9,7 +9,7 @@ struct statedge
     char trans;
 };
 
-struct nfa_segment{
+struct nfa_segment        {
     int in_node;
     int out_node;
     char trans;//trans is valid if kind=0

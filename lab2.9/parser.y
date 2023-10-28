@@ -43,7 +43,7 @@
 %}
 
 
-%token NUMBER ADD MINUS DIVIDE MOD TIMES INT FLOAT ID VOID CONST IF ELSE RETURN CONTINUE BREAK CHAR DOUBLE
+%token NUMBER ADD MINUS DIVIDE MOD TIMES INT FLOAT ID VOID CONST IF ELSE RETURN CONTINUE BREAK CHAR DOUBLE EQ
 
 %left ADD MINUS
 %left TIMES DIVIDE MOD
@@ -61,6 +61,7 @@ block   :   '{' lines '}'
 lines   :   lines stmt
         |   lines ';' lines
         |   lines funcdecl
+        |   lines if_stmt
         |
         ;
 
@@ -95,6 +96,7 @@ expr    :   NUMBER {
                 ($$)=(int)($1)%(int)($3);}
         |   '('expr')' {($$)=($2);}
         |   '-' expr %prec UMINUS {($$)=-($2);}
+        |   expr EQ expr {($$)=($1)==($3);}
         |   ID{
                 double value=get(&ht,LastID);
                 int k=get_kind(&ht,LastID);
@@ -124,6 +126,10 @@ conj    :   IF
         |   CONTINUE
         |   BREAK
         |   CONST
+        ;
+
+if_stmt :   IF '(' expr ')' stmt
+        |   IF '(' expr ')' stmt ELSE stmt
         ;
 
 decl    :   keyword ID  {printf("variable ");
@@ -376,6 +382,13 @@ int yylex(){
                         LastKind='I';
                         return IF;
                 }
+                else if(strcmp(identifier,"else")==0){
+                        printf("ELSE \'else\'\n");
+                        DeclFlag=true;
+                        LastChar='I';
+                        LastKind='I';
+                        return ELSE;
+                }
                 else {
                         if(DeclFlag){
                                 if(LastKind=='i')
@@ -400,6 +413,14 @@ int yylex(){
 
         }
         else if(t=='='){
+                char t=getc(stdin);
+                if(t=='='){
+                        printf("EQ \'==\'\n");
+                        return EQ;
+                }
+                else{
+                        ungetc(t,stdin);
+                }
                 isAssignment=true;
                 memcpy(AssnID,LastID,100*sizeof(char));
                 printf("Assignment \'=\'\n");

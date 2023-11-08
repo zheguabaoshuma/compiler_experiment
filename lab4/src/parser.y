@@ -1,8 +1,11 @@
 %code top{
     #include <iostream>
+    #include <vector>
     #include <assert.h>
     #include "parser.h"
     extern Ast ast;
+    bool isFuncDef = false;
+    SymbolTable *funcParaTable = nullptr;
     int yylex();
     int yyerror( char const * );
 }
@@ -32,9 +35,9 @@
 %token INT VOID
 %token LPAREN RPAREN LBRACE RBRACE SEMICOLON COMMENT COMMENT2 CONST COMMA
 %token ADD SUB OR AND LESS ASSIGN MUL DIV MOD GREATER NOT INC DEC LESSANDEQ GREATERANDEQ EQ NOTEQ
-%token RETURN
+%token RETURN BREAK CONTINUE
 
-%nterm <stmttype> Stmts Stmt AssignStmt BlockStmt IfStmt ReturnStmt DeclStmt FuncDef WhileStmt CommentStmt FuncCallStmt
+%nterm <stmttype> Stmts Stmt AssignStmt BlockStmt IfStmt ReturnStmt DeclStmt FuncDef WhileStmt CommentStmt FuncCallStmt BreakStmt ContinueStmt
 %nterm <exprtype> Exp AddExp Cond LOrExp PrimaryExp LVal RelExp LAndExp MulExp UnaryExp FuncCall
 %nterm <exprs> Exps
 %nterm <paras> FuncDefParas
@@ -64,6 +67,8 @@ Stmt
     | FuncDef {$$=$1;}
     | CommentStmt Stmt{$$=$2;}
     | FuncCallStmt {$$=$1;}
+    | BreakStmt {$$=$1;}
+    | ContinueStmt {$$=$1;}
     ;
 LVal
     : ID {
@@ -93,7 +98,17 @@ AssignStmt
     ;
 BlockStmt
     :   LBRACE 
-        {identifiers = new SymbolTable(identifiers);} 
+        {
+            identifiers = new SymbolTable(identifiers);
+            if(isFuncDef){
+                std::map<std::string, SymbolEntry*> entries = funcParaTable->getSymbolTable();
+                for(auto entry:entries)
+                {
+                    identifiers->install(entry.first.c_str(), entry.second);
+                }
+                isFuncDef = false;
+            }
+            } 
         Stmts RBRACE 
         {
             $$ = new CompoundStmt($3);
@@ -123,6 +138,21 @@ ReturnStmt
         $$ = new ReturnStmt($2);
     }
     ;
+
+BreakStmt
+    :
+    BREAK SEMICOLON{
+        $$ = new BreakStmt();
+    }
+    ;
+
+ContinueStmt
+    :
+    CONTINUE SEMICOLON{
+        $$ = new ContinueStmt();
+    }
+    ;
+
 Exp
     :
     AddExp {$$ = $1;}
@@ -332,8 +362,8 @@ FuncDefParas
     :
     Type ID {
         SymbolEntry *se;
-        se = new IdentifierSymbolEntry($1, $2, identifiers->getLevel());
-        identifiers->install($2, se);
+        se = new IdentifierSymbolEntry($1, $2, identifiers->getLevel()+2);
+        //identifiers->install($2, se);
         $$ = new FunctionDefParas(se);
         delete []$2;
     }
@@ -341,8 +371,8 @@ FuncDefParas
     FuncDefParas COMMA Type ID {
         //printf("in Paras");
         SymbolEntry *se;
-        se = new IdentifierSymbolEntry($3, $4, identifiers->getLevel());
-        identifiers->install($4, se);
+        se = new IdentifierSymbolEntry($3, $4, identifiers->getLevel()+2);
+        //identifiers->install($4, se);
         $1->addPara(se);
         $$=$1;
         delete []$4;
@@ -379,6 +409,14 @@ FuncDef
         SymbolEntry *se = new IdentifierSymbolEntry(funcType, $2, identifiers->getLevel());
         identifiers->install($2, se);
         identifiers = new SymbolTable(identifiers);
+        std::vector<Id*> paras = $4->getParas();
+        for(auto para:paras)
+        {
+            SymbolEntry *pse=para->getSymbolEntry();
+            identifiers->install(pse->toStr().c_str(), pse);
+        }
+        isFuncDef = true;
+        funcParaTable = identifiers;
     }
     BlockStmt
     {
@@ -386,6 +424,7 @@ FuncDef
         se = identifiers->lookup($2);
         assert(se != nullptr);
         $$ = new FunctionDef(se, $7);
+        dynamic_cast<FunctionDef*>($$)->loadParas($4->getParas());
         SymbolTable *top = identifiers;
         identifiers = identifiers->getPrev();
         delete top;

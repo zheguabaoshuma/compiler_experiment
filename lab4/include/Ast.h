@@ -70,6 +70,7 @@ class Id : public ExprNode
 {
 public:
     Id(SymbolEntry *se) : ExprNode(se){};
+    SymbolEntry* getSymbolEntry() {return symbolEntry;}
     void output(int level);
 };
 
@@ -144,6 +145,20 @@ public:
     void output(int level);
 };
 
+class BreakStmt : public StmtNode
+{
+public:
+    BreakStmt() {};
+    void output(int level);
+};
+
+class ContinueStmt : public StmtNode
+{
+public:
+    ContinueStmt() {};
+    void output(int level);
+};
+
 class AssignStmt : public StmtNode
 {
 private:
@@ -159,8 +174,10 @@ class FunctionDef : public StmtNode
 private:
     SymbolEntry *se;
     StmtNode *stmt;
+    std::vector<Id*> paras;
 public:
     FunctionDef(SymbolEntry *se, StmtNode *stmt) : se(se), stmt(stmt){};
+    void loadParas(std::vector<Id*> paras) {this->paras = paras;}
     void output(int level);
 };
 
@@ -174,7 +191,7 @@ public:
     void addPara(SymbolEntry *se) ;
     std::vector<Id*> getParas() {return paras;}
     std::vector<Type*> getParasType() {return paraTypes;}
-    void output(int level);
+    void output(int level){};
 };
 
 class FunctionCall : public ExprNode

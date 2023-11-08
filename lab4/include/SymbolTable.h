@@ -132,6 +132,7 @@ public:
     SymbolTable* getPrev() {return prev;};
     int getLevel() {return level;};
     static int getLabel() {return counter++;};
+    std::map<std::string, SymbolEntry*> getSymbolTable() {return symbolTable;};
 };
 
 extern SymbolTable *identifiers;

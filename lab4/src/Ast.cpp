@@ -172,6 +172,11 @@ void FunctionDef::output(int level)
     fprintf(yyout, "%*cFunctionDefine function name: %s, type: %s\n", level, ' ', 
             name.c_str(), type.c_str());
     stmt->output(level + 4);
+    // if(!paras.empty()){
+    //     fprintf(yyout, "%*cParas\n", level, ' ');
+    //     for(auto para : paras)
+    //         para->output(level + 4);
+    // }
 }
 
 void FunctionCall::output(int level)
@@ -210,10 +215,20 @@ void FunctionDefParas::addPara(SymbolEntry *se)
     //printf("%s\n",se->getType()->toStr().c_str());
 }
 
-void FunctionDefParas::output(int level)
+// void FunctionDefParas::output(int level)
+// {
+//     printf("in para out\n");
+//     fprintf(yyout, "%*cFunctionDefParas\n", level, ' ');
+//     for(auto para : paras)
+//         para->output(level + 4);
+// }
+
+void BreakStmt::output(int level)
 {
-    fprintf(yyout, "%*cFunctionDefParas\n", level, ' ');
-    for(auto para : paras)
-        para->output(level + 4);
+    fprintf(yyout, "%*cBreakStmt\n", level, ' ');
 }
 
+void ContinueStmt::output(int level)
+{
+    fprintf(yyout, "%*cContinueStmt\n", level, ' ');
+}

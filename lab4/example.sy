@@ -1,5 +1,5 @@
 int a;
-int max(int a, int b){return a;}
+int max(int x,int y){int a=3;y=2;x=y;return a;}
 int main()
 {
     int a;

@@ -44,7 +44,7 @@
 
 
 %token NUMBER ADD MINUS DIVIDE MOD TIMES INT FLOAT ID VOID CONST IF ELSE RETURN CONTINUE BREAK CHAR DOUBLE EQ
-
+%token WHILE
 %left ADD MINUS
 %left TIMES DIVIDE MOD
 %right UMINUS
@@ -126,6 +126,7 @@ conj    :   IF
         |   CONTINUE
         |   BREAK
         |   CONST
+        |   WHILE
         ;
 
 if_stmt :   IF '(' expr ')' stmt
@@ -144,6 +145,17 @@ decl    :   keyword ID  {printf("variable ");
                         printf(DeclID);printf(" is added and set to %f\n",0);
                         }
         |   keyword ID '=' expr {modify(&ht,DeclID,$4);printf("variable ");
+                        if(get_kind(&ht,DeclID)==INTTYPE)
+                                printf("int ");
+                        else if(get_kind(&ht,DeclID)==FLOATTYPE)
+                                printf("float ");
+                        else if(get_kind(&ht,DeclID)==DOUBLETYPE)
+                                printf("double ");
+                        else if(get_kind(&ht,DeclID)==CHARTYPE)
+                                printf("char ");
+                        printf(DeclID);printf(" is added and set to %f\n",($4));}
+
+        | CONST keyword ID '=' expr{modify(&ht,DeclID,$4);printf("const variable ");
                         if(get_kind(&ht,DeclID)==INTTYPE)
                                 printf("int ");
                         else if(get_kind(&ht,DeclID)==FLOATTYPE)
@@ -247,18 +259,42 @@ bool isDigit(char c){
         if(c>='0'&&c<='9')return true;
         else return false;
 }
+int isHexDigit(char c){
+        if(c>='0'&&c<='9')return c-'0';
+        else if(c>='a'&&c<='f')return 10+c-'a';
+        else if(c>='A'&&c<='F')return 10+c-'A';
+        else return -1;
+}
 
 int yylex(){
     char t;
+    bool zhushi=false;
     while(true){
         t=getchar();
+        int base=10;
+        if(zhushi){
+                if(t=='\n')zhushi=false;
+                continue;
+        }
         if(t==' '||t=='\t'||t=='\n'){continue;}
         else if(isDigit(t)){
                 double value=(t-'0');
                 double resi=0;
                 bool Havedot=false;
+                if(t=='0'){
+                        t=getc(stdin);
+                        if(t=='x'||t=='X'){
+                                base=16;
+                                
+                        }
+                        else if(t>='1'&&t<='7'){
+                                base=8;
+                                ungetc(t,stdin);
+                        }
+                }
                 t=getc(stdin);
-                while(isDigit(t)||t=='.'||t==' '||t=='\n'||t=='\t'){
+                
+                while((base==16&&isHexDigit(t)!=-1)||isDigit(t)||t=='.'||t==' '||t=='\n'||t=='\t'){
                         if(!Havedot&&t=='.'){
                                 Havedot=true;
                                 t=getc(stdin);
@@ -273,7 +309,12 @@ int yylex(){
                                 resi=resi*10+t-'0';
                         }
                         else{
-                                value=10*value+t-'0';
+                                if(base==16){
+                                        value=base*value+isHexDigit(t);
+                                        printf("in base 16 %d\n",isHexDigit(t));
+                                }
+                                else
+                                        value=base*value+t-'0';
                         }
 
                         if((t=getc(stdin))==EOF){
@@ -303,6 +344,13 @@ int yylex(){
                 }
                 }
         else if(t=='/') {
+                t=getchar();
+                if(t=='/'){
+                        zhushi=true;
+                        continue;
+                }
+                else{
+                        ungetc(t,stdin);}
                 printf("DIVIDE \'/\'\n");
                 LastChar=t;return DIVIDE;}
         else if(t=='*') {
@@ -388,6 +436,20 @@ int yylex(){
                         LastChar='I';
                         LastKind='I';
                         return ELSE;
+                }
+                else if(strcmp(identifier,"const")==0){
+                        printf("CONST \'const\'\n");
+                        DeclFlag=true;
+                        LastChar='I';
+                        LastKind='I';
+                        return CONST;
+                }
+                else if(strcmp(identifier,"while")==0){
+                        printf("WHILE \'WHILE\'\n");
+                        DeclFlag=true;
+                        LastChar='I';
+                        LastKind='I';
+                        return WHIL;
                 }
                 else {
                         if(DeclFlag){

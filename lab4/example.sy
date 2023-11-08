@@ -1,0 +1,13 @@
+int a;
+int max(int a, int b){return a;}
+int main()
+{
+    int a;
+    a = 1 + 2;
+    if(a < 5)
+        return 1;
+    while(a!=3){a=2*a;}
+    max(2,4);
+//asdoiho
+    return 0;
+}

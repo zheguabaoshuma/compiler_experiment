@@ -33,7 +33,7 @@
 %token <ftype> FLOAT
 %token IF ELSE WHILE
 %token INT VOID
-%token LPAREN RPAREN LBRACE RBRACE SEMICOLON COMMENT COMMENT2 CONST COMMA
+%token LPAREN RPAREN LBRACE RBRACE SEMICOLON COMMENT COMMENT2 CONST COMMA LBRACKET RBRACKET
 %token ADD SUB OR AND LESS ASSIGN MUL DIV MOD GREATER NOT INC DEC LESSANDEQ GREATERANDEQ EQ NOTEQ
 %token RETURN BREAK CONTINUE
 
@@ -182,11 +182,15 @@ PrimaryExp
         $$ = $1;
     }
     | INTEGER {
-        SymbolEntry *se = new ConstantSymbolEntry(TypeSystem::intType, $1);
+        ConstantSymbolEntry::Variable value;
+        value.i = $1;
+        SymbolEntry *se = new ConstantSymbolEntry(TypeSystem::intType, value);
         $$ = new Constant(se);
     }
     | FLOAT {
-        SymbolEntry *se = new ConstantSymbolEntry(TypeSystem::floatType, $1);
+        ConstantSymbolEntry::Variable value;
+        value.f = $1;
+        SymbolEntry *se = new ConstantSymbolEntry(TypeSystem::floatType, value);
         $$ = new Constant(se);
     }
     ;
@@ -330,6 +334,9 @@ Type
     | VOID {
         $$ = TypeSystem::voidType;
     }
+    | FLOAT {
+        $$ = TypeSystem::floatType;
+    }
     ;
 DeclStmt
     :
@@ -356,13 +363,38 @@ DeclStmt
         $$ = new DeclStmt(new Id(se));
         delete []$3;
     }
+    |
+    Type ID LBRACKET INTEGER RBRACKET SEMICOLON {
+        SymbolEntry *se;
+        se = new IdentifierSymbolEntry($1, $2, identifiers->getLevel());
+        dynamic_cast<IdentifierSymbolEntry*>(se)->setPointer($4, nullptr);//TODO: initialize the pointer of array
+        identifiers->install($2, se);
+        $$ = new DeclStmt(new Id(se));
+        delete []$2;
+    }
+    |
+    Type ID LBRACKET INTEGER RBRACKET ASSIGN LBRACE Exps RBRACE SEMICOLON {
+        SymbolEntry *se;
+        se = new IdentifierSymbolEntry($1, $2, identifiers->getLevel());
+        dynamic_cast<IdentifierSymbolEntry*>(se)->setPointer($4, nullptr);//TODO: initialize the pointer of array
+        identifiers->install($2, se);
+        Id* id = new Id(se);
+        id->setArrayDeclInit($8);
+        $$ = new DeclStmt(id);
+        delete []$2;
+        if($8->getSize() > $4)
+        {
+            printf("too many initializer for array %s\n",$2);
+            return -1;
+        }
+    }
     ;
 
 FuncDefParas
     :
     Type ID {
         SymbolEntry *se;
-        se = new IdentifierSymbolEntry($1, $2, identifiers->getLevel()+2);
+        se = new IdentifierSymbolEntry($1, $2, identifiers->getLevel()+1);
         //identifiers->install($2, se);
         $$ = new FunctionDefParas(se);
         delete []$2;
@@ -371,7 +403,7 @@ FuncDefParas
     FuncDefParas COMMA Type ID {
         //printf("in Paras");
         SymbolEntry *se;
-        se = new IdentifierSymbolEntry($3, $4, identifiers->getLevel()+2);
+        se = new IdentifierSymbolEntry($3, $4, identifiers->getLevel()+1);
         //identifiers->install($4, se);
         $1->addPara(se);
         $$=$1;
@@ -448,6 +480,8 @@ FuncCall
         se = identifiers->lookup($1);
         assert(se != nullptr);
         assert(((IdentifierSymbolEntry*)(se))->isFunction());
+        //check function prototype
+        
         $$ = new FunctionCall(se, $3->getExprs());
         delete []$1;
     }

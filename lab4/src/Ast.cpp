@@ -95,7 +95,7 @@ void Constant::output(int level)
     std::string type, value;
     type = symbolEntry->getType()->toStr();
     value = symbolEntry->toStr();
-    fprintf(yyout, "%*cIntegerLiteral\tvalue: %s\ttype: %s\n", level, ' ',
+    fprintf(yyout, "%*cLiteral\tvalue: %s\ttype: %s\n", level, ' ',
             value.c_str(), type.c_str());
 }
 
@@ -106,8 +106,21 @@ void Id::output(int level)
     name = symbolEntry->toStr();
     type = symbolEntry->getType()->toStr();
     scope = dynamic_cast<IdentifierSymbolEntry*>(symbolEntry)->getScope();
-    fprintf(yyout, "%*cId\tname: %s\tscope: %d\ttype: %s\n", level, ' ',
-            name.c_str(), scope, type.c_str());
+    if(dynamic_cast<IdentifierSymbolEntry*>(symbolEntry)->isArray()){
+        if(ArrayDeclInit){
+            fprintf(yyout, "%*cId\tname: %s\ttype: %s[%d]\tscope: %d\n", level, ' ',
+                name.c_str(), type.c_str(), dynamic_cast<IdentifierSymbolEntry*>(symbolEntry)->getArraySize(),scope);
+            for(auto expr : exprs->getExprs())
+                expr->output(level + 4);
+        }
+        else
+            fprintf(yyout, "%*cId\tname: %s\ttype: %s[%d]\tscope: %d\n", level, ' ',
+                name.c_str(), type.c_str(), dynamic_cast<IdentifierSymbolEntry*>(symbolEntry)->getArraySize(),scope);
+        
+        }
+    else
+        fprintf(yyout, "%*cId\tname: %s\tscope: %d\ttype: %s\n", level, ' ',
+                name.c_str(), scope, type.c_str());
 }
 
 void CompoundStmt::output(int level)

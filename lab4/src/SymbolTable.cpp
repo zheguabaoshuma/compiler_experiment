@@ -1,6 +1,8 @@
 #include "SymbolTable.h"
 #include <iostream>
 #include <sstream>
+#include <typeindex>
+#include <typeinfo>
 
 SymbolEntry::SymbolEntry(Type *type, int kind) 
 {
@@ -8,7 +10,7 @@ SymbolEntry::SymbolEntry(Type *type, int kind)
     this->kind = kind;
 }
 
-ConstantSymbolEntry::ConstantSymbolEntry(Type *type, int value) : SymbolEntry(type, SymbolEntry::CONSTANT)
+ConstantSymbolEntry::ConstantSymbolEntry(Type *type, ConstantSymbolEntry::Variable value) : SymbolEntry(type, SymbolEntry::CONSTANT)
 {
     this->value = value;
 }
@@ -16,7 +18,13 @@ ConstantSymbolEntry::ConstantSymbolEntry(Type *type, int value) : SymbolEntry(ty
 std::string ConstantSymbolEntry::toStr()
 {
     std::ostringstream buffer;
-    buffer << value;
+    if (type->isInt()) {
+        buffer << value.i;
+    } else if (type->isFloat()) {
+        buffer << value.f;
+    } else {
+        std::cout << "Error: unknown type of constant symbol entry." << std::endl;
+    }
     return buffer.str();
 }
 
@@ -24,6 +32,15 @@ IdentifierSymbolEntry::IdentifierSymbolEntry(Type *type, std::string name, int s
 {
     this->scope = scope;
     this->constant = constant;
+    if(scope==0){
+        attribute=GLOBAL;
+    }
+    else if(scope%2==1){
+        attribute=PARAM;
+    }
+    else{
+        attribute=LOCAL;
+    }
 }
 
 std::string IdentifierSymbolEntry::toStr()

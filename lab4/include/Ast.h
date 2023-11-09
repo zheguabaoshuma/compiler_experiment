@@ -30,11 +30,13 @@ class ExprsNode
 {    
 private:
     std::vector<ExprNode*> exprs;
+    int size;
 public:
     ExprsNode(){};
-    void addExpr(ExprNode *expr) {exprs.push_back(expr);};
+    void addExpr(ExprNode *expr) {exprs.push_back(expr);size++;};
     std::vector<ExprNode*> getExprs() {return exprs;};
-    void output(int level) {};
+    int getSize() {return size;};
+    void output(int level);
 };
 
 class BinaryExpr : public ExprNode
@@ -68,10 +70,14 @@ public:
 
 class Id : public ExprNode
 {
+private:
+    bool ArrayDeclInit;
+    ExprsNode *exprs;
 public:
     Id(SymbolEntry *se) : ExprNode(se){};
     SymbolEntry* getSymbolEntry() {return symbolEntry;}
     void output(int level);
+    void setArrayDeclInit(ExprsNode* e) {ArrayDeclInit = true;exprs = e;}
 };
 
 class StmtNode : public Node
@@ -99,6 +105,7 @@ class DeclStmt : public StmtNode
 {
 private:
     Id *id;
+    
 public:
     DeclStmt(Id *id) : id(id){};
     void output(int level);

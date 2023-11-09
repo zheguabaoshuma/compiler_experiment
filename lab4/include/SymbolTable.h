@@ -37,11 +37,16 @@ public:
 class ConstantSymbolEntry : public SymbolEntry
 {
 private:
-    int value;
+    
 public:
-    ConstantSymbolEntry(Type *type, int value);
+    union Variable
+        {
+            int i;
+            float f;
+        } value;
+    ConstantSymbolEntry(Type *type, union Variable value);
     virtual ~ConstantSymbolEntry() {};
-    int getValue() const {return value;};
+    union Variable getValue() const {return value;};
     std::string toStr();
     // You can add any function you need here.
 };
@@ -77,13 +82,20 @@ private:
     int scope;
     // You can add any field you need here.
     bool constant;
+    bool pointer;
+    int enumerate_size;
+    void* _ptr_;
+    int attribute;
 public:
     IdentifierSymbolEntry(Type *type, std::string name, int scope, bool constant = false);
+    void setPointer(int s,void* p) {pointer = true;enumerate_size = s;_ptr_ = p;};
     virtual ~IdentifierSymbolEntry() {};
     std::string toStr();
     int getScope() const {return scope;};
     // You can add any function you need here.
     bool isFunction() {return getType()->isFunc();};
+    bool isArray() {return !enumerate_size==0;};
+    int getArraySize() {return enumerate_size;};
 };
 
 

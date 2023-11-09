@@ -1,5 +1,14 @@
 int a;
+float s=1.23e+5;
+s=1.22;
+float arr[3]={1,2,4};
 int max(int x,int y){int a=3;y=2;x=y;return a;}
+int foo(int c){
+    int a=2;
+    int b=3;
+    max(a,b);
+    return 0;
+}
 int main()
 {
     int a;

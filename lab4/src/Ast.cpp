@@ -125,8 +125,11 @@ void Id::output(int level)
 
 void CompoundStmt::output(int level)
 {
-    fprintf(yyout, "%*cCompoundStmt\n", level, ' ');
-    stmt->output(level + 4);
+    if(stmt!=nullptr){
+        fprintf(yyout, "%*cCompoundStmt\n", level, ' ');
+        stmt->output(level + 4);
+    }
+    
 }
 
 void SeqNode::output(int level)
@@ -136,17 +139,29 @@ void SeqNode::output(int level)
     stmt2->output(level + 4);
 }
 
+DeclStmt::DeclStmt(std::vector<SymbolEntry*>* ses)
+{
+    for(auto se : *ses)
+    {
+        Id* t = new Id(se);
+        Ids.push_back(t);
+    }
+}
+
 void DeclStmt::output(int level)
 {
     fprintf(yyout, "%*cDeclStmt\n", level, ' ');
-    id->output(level + 4);
+    // id->output(level + 4);
+    for (auto id : Ids)
+        id->output(level + 4);
 }
 
 void IfStmt::output(int level)
 {
     fprintf(yyout, "%*cIfStmt\n", level, ' ');
     cond->output(level + 4);
-    thenStmt->output(level + 4);
+    if(thenStmt!=nullptr)
+        thenStmt->output(level + 4);
 }
 
 void IfElseStmt::output(int level)
@@ -244,4 +259,30 @@ void BreakStmt::output(int level)
 void ContinueStmt::output(int level)
 {
     fprintf(yyout, "%*cContinueStmt\n", level, ' ');
+}
+
+std::vector<Type *> ExprsNode::getExprsType()
+{
+    std::vector<Type *> exprsType;
+    for(auto expr : exprs)
+        exprsType.push_back(expr->getType());
+    return exprsType;
+}
+
+void ExprsNode::output(int level)
+{
+    fprintf(yyout, "%*cExprs\n", level, ' ');
+    for(auto expr : exprs)
+        expr->output(level + 4);
+}
+
+void ExprStmt::output(int level)
+{
+    fprintf(yyout, "%*cExprStmt\n", level, ' ');
+    exprs->output(level + 4);
+}
+
+void EmptyStmt::output(int level)
+{
+    fprintf(yyout, "%*cEmptyStmt\n", level, ' ');
 }

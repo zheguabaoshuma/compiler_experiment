@@ -22,6 +22,7 @@ public:
     bool isTemporary() const {return kind == TEMPORARY;};
     bool isVariable() const {return kind == VARIABLE;};
     Type* getType() {return type;};
+    void setType(Type* t) {type = t;};
     virtual std::string toStr() = 0;
     // You can add any function you need here.
 };
@@ -89,6 +90,7 @@ private:
 public:
     IdentifierSymbolEntry(Type *type, std::string name, int scope, bool constant = false);
     void setPointer(int s,void* p) {pointer = true;enumerate_size = s;_ptr_ = p;};
+    void setConstant(bool c) {constant = c;};
     virtual ~IdentifierSymbolEntry() {};
     std::string toStr();
     int getScope() const {return scope;};

@@ -30,7 +30,7 @@ INT_OCT [0][0-7]+
 FLOAT ([0-9]|[1-9][0-9]+)[.][0-9][0-9]*
 FLOATS ([0-9]|[1-9][0-9]+)[.][0-9][0-9]*[eE][+-]([0-9]|[1-9][0-9]+)
 COMMENT "//"(.)*{EOL}
-COMMENT2 "/*"(.)*"*/"
+COMMENT2 "/*"(.|{EOL})*"*/"
 WHITE [\t ]
 /*  Your code here (lab3). */
 
@@ -204,6 +204,11 @@ WHITE [\t ]
 "const" {
     dump_tokens("CONST\t%s\n", yytext);
     return CONST;
+}
+
+"%" {
+    dump_tokens("MOD\t%s\n", yytext);
+    return MOD;
 }
 
 {DECIMIAL} {

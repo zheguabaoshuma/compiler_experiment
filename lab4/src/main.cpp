@@ -16,6 +16,9 @@ dump_type_t dump_type = ASM;
 int main(int argc, char *argv[])
 {
     int opt;
+
+    printf("in file %s\n",argv[optind]);
+
     while ((opt = getopt(argc, argv, "ato:")) != -1)
     {
         switch (opt)

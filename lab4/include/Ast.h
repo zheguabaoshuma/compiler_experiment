@@ -24,6 +24,7 @@ protected:
     SymbolEntry *symbolEntry;
 public:
     ExprNode(SymbolEntry *symbolEntry) : symbolEntry(symbolEntry){};
+    Type* getType() {return symbolEntry->getType();};
 };
 
 class ExprsNode
@@ -35,9 +36,12 @@ public:
     ExprsNode(){};
     void addExpr(ExprNode *expr) {exprs.push_back(expr);size++;};
     std::vector<ExprNode*> getExprs() {return exprs;};
+    std::vector<Type*> getExprsType();
     int getSize() {return size;};
     void output(int level);
 };
+
+
 
 class BinaryExpr : public ExprNode
 {
@@ -56,7 +60,7 @@ private:
     int op;
     ExprNode *expr;
 public:
-    enum {NOT, NEG, INC, DEC};
+    enum {NOT, NEG, INC, DEC, PLUS};
     UnaryExpr(SymbolEntry *se, int op, ExprNode *expr) : ExprNode(se), op(op), expr(expr){};
     void output(int level);
 };
@@ -73,9 +77,11 @@ class Id : public ExprNode
 private:
     bool ArrayDeclInit;
     ExprsNode *exprs;
+    int bias;//valid when se is a array entry, -1 means unknown index, 0 means not array
 public:
     Id(SymbolEntry *se) : ExprNode(se){};
     SymbolEntry* getSymbolEntry() {return symbolEntry;}
+    void setBias(int bias) {this->bias = bias;}
     void output(int level);
     void setArrayDeclInit(ExprsNode* e) {ArrayDeclInit = true;exprs = e;}
 };
@@ -92,6 +98,23 @@ public:
     void output(int level);
 };
 
+class ExprStmt : public StmtNode
+{
+private:
+    ExprsNode *exprs;
+public:
+    ExprStmt(ExprsNode *exprs) : exprs(exprs){};
+    void output(int level);
+};
+
+class EmptyStmt : public StmtNode
+{
+public:
+    EmptyStmt() {};
+    void output(int level);
+};
+
+
 class SeqNode : public StmtNode
 {
 private:
@@ -105,9 +128,11 @@ class DeclStmt : public StmtNode
 {
 private:
     Id *id;
-    
+    std::vector<Id*> Ids;
 public:
-    DeclStmt(Id *id) : id(id){};
+    DeclStmt(Id *id) : id(id){Ids.push_back(id);}
+    DeclStmt(std::vector<SymbolEntry*>* ses);
+    void addId(Id *id) {Ids.push_back(id);}
     void output(int level);
 };
 

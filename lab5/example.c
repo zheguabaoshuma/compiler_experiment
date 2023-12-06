@@ -1,0 +1,15 @@
+int g=3;
+double y=8.5;
+int main()
+{
+    int a;
+    int b;
+    int min;
+    a = 1 + 2 + 3;
+    b = 2 + 3 + 4;
+    if (a < b)
+        min = a;
+    else
+        min = b;
+    return min;
+}

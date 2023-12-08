@@ -6,6 +6,7 @@
 #include <string>
 #include "Type.h"
 
+
 extern FILE *yyout;
 int Node::counter = 0;
 IRBuilder* Node::builder = nullptr;
@@ -39,7 +40,21 @@ void FunctionDef::genCode()
 {
     Unit *unit = builder->getUnit();
     Function *func = new Function(unit, se);
+    func->setRet(ret);
+    if(!paras.empty())
+    {
+        func->setParas(paras);
+        for(int i = 0; i < (int)paras.size(); i++){
+            TemporarySymbolEntry* tempParasSe = new TemporarySymbolEntry(new PointerType(paras[i]->getType()),"__"+paras[i]->getIdentifierSymbolEntry()->getName());
+            Operand* tempParasAddr = new Operand(tempParasSe);
+            new AllocaInstruction(tempParasAddr, tempParasSe, func->getEntry());
+            new StoreInstruction(tempParasAddr,func->getParasOp()[i],func->getEntry());
+            func->getParas()[i]->getIdentifierSymbolEntry()->setAddr(tempParasAddr);
+        }
+    }
+        
     BasicBlock *entry = func->getEntry();
+    BasicBlock *exit = func->getExit();
     // set the insert point to the entry basicblock of this function.
     //BasicBlock *exit = builder->getInsertBB();
     builder->setInsertBB(entry);
@@ -47,6 +62,14 @@ void FunctionDef::genCode()
      * Construct control flow graph. You need do set successors and predecessors for each basic block.
      * Todo
     */
+    FunctionType* funcType = dynamic_cast<FunctionType*>(se->getType());
+    Type *retType = funcType->getRetType();
+    Operand *zero_src = new Operand(new ConstantSymbolEntry(retType));
+    Type* ret_ptr_type = new PointerType(retType);
+    SymbolEntry *ret_addr = new TemporarySymbolEntry(ret_ptr_type, "__ret__");
+    Operand* ret_addr_op = new Operand(ret_addr);
+    new AllocaInstruction(ret, new ConstantSymbolEntry(retType), entry);
+    new StoreInstruction(ret_addr_op, zero_src, entry);
     stmt->genCode();
     BasicBlock* last_bb = nullptr;
     for(auto bb:func->getBlockList())
@@ -58,7 +81,15 @@ void FunctionDef::genCode()
         }
         last_bb = bb;
     }
-
+    if(last_bb->empty()){
+        new UncondBrInstruction(func->getExit(), last_bb);
+    }
+    last_bb->addSucc(exit);
+    exit->addPred(last_bb);
+    SymbolEntry *ret_value = new TemporarySymbolEntry(retType, "__retvalue__");
+    Operand* ret_value_op = new Operand(ret_value);
+    new LoadInstruction(ret_value_op, ret_addr_op, exit);
+    new RetInstruction(ret_value_op, exit);
 
 }
 
@@ -87,6 +118,60 @@ void BinaryExpr::genCode()
         false_list = expr2->falseList();
         true_list = merge(expr1->trueList(), expr2->trueList());
     }
+    else if(op == XOR){
+        // Todo
+        expr1->genCode();
+        expr2->genCode();
+        Operand *src1 = expr1->getOperand();
+        Operand *src2 = expr2->getOperand();
+        new BinaryInstruction(BinaryInstruction::XOR, dst, src1, src2, bb);
+    }
+    else if(op >= ADD && op <= SUB)
+    {
+        expr1->genCode();
+        expr2->genCode();
+        Operand *src1 = expr1->getOperand();
+        Operand *src2 = expr2->getOperand();
+        int opcode;
+        switch (op)
+        {
+        case ADD:
+            opcode = BinaryInstruction::ADD;
+            break;
+        case SUB:
+            opcode = BinaryInstruction::SUB;
+            break;
+        default:
+            opcode = -1;
+            break;
+        }
+        new BinaryInstruction(opcode, dst, src1, src2, bb);
+    }
+    else if(op >= MUL && op <= MOD)
+    {
+        // Todo
+        expr1->genCode();
+        expr2->genCode();
+        Operand *src1 = expr1->getOperand();
+        Operand *src2 = expr2->getOperand();
+        int opcode;
+        switch (op)
+        {
+        case MUL:
+            opcode = BinaryInstruction::MUL;
+            break;
+        case DIV:
+            opcode = BinaryInstruction::DIV;
+            break;
+        case MOD:
+            opcode = BinaryInstruction::MOD;
+            break;
+        default:
+            opcode = -1;
+            break;
+        }
+        new BinaryInstruction(opcode, dst, src1, src2, bb);
+    }
     else if(op >= LESS && op <= GREATER)
     {
         // Todo
@@ -109,8 +194,10 @@ void BinaryExpr::genCode()
         }
         new CmpInstruction(opcode, dst, src1, src2, bb);
     }
-    else if(op >= ADD && op <= SUB)
+    
+    else if(op >= LESSANDEQ && op <= NOTEQ)
     {
+        // Todo
         expr1->genCode();
         expr2->genCode();
         Operand *src1 = expr1->getOperand();
@@ -118,17 +205,23 @@ void BinaryExpr::genCode()
         int opcode;
         switch (op)
         {
-        case ADD:
-            opcode = BinaryInstruction::ADD;
+        case LESSANDEQ:
+            opcode = CmpInstruction::LE;
             break;
-        case SUB:
-            opcode = BinaryInstruction::SUB;
+        case GREATERANDEQ:
+            opcode = CmpInstruction::GE;
+            break;
+        case EQ:
+            opcode = CmpInstruction::E;
+            break;
+        case NOTEQ:
+            opcode = CmpInstruction::NE;
             break;
         default:
             opcode = -1;
             break;
         }
-        new BinaryInstruction(opcode, dst, src1, src2, bb);
+        new CmpInstruction(opcode, dst, src1, src2, bb);
     }
 }
 
@@ -213,47 +306,51 @@ void SeqNode::genCode()
 
 void DeclStmt::genCode()
 {
-    IdentifierSymbolEntry *se = dynamic_cast<IdentifierSymbolEntry *>(id->getSymPtr());
-    if(se->isGlobal())
+    for(int i=0;i<(int)Ids->size();i++)
     {
-        Operand *addr;
-        Type* type = new PointerType(se->getType());
-        SymbolEntry *addr_se = new IdentifierSymbolEntry(type, se->getName(), se->getScope());
-        addr = new Operand(addr_se);
-        if(init_expr == nullptr)
+        IdentifierSymbolEntry *se = dynamic_cast<IdentifierSymbolEntry *>((*Ids)[i]->getSymPtr());
+        if(se->isGlobal())
         {
-            new AllocaGlobalInstruction(addr, se, nullptr ,builder->getInsertBB());
-            // init_expr->genCode();
-            // Operand *src = init_expr->getOperand();
-            // new StoreInstruction(addr, src, builder->getInsertBB());
+            Operand *addr;
+            Type* type = new PointerType(se->getType());
+            SymbolEntry *addr_se = new IdentifierSymbolEntry(type, se->getName(), se->getScope());
+            addr = new Operand(addr_se);
+            if((*init_exprs)[i] == nullptr)
+            {
+                new AllocaGlobalInstruction(addr, se, nullptr ,builder->getInsertBB());
+                // init_expr->genCode();
+                // Operand *src = init_expr->getOperand();
+                // new StoreInstruction(addr, src, builder->getInsertBB());
+            }
+            else if((*init_exprs)[i]->isCTConstant()){
+                new AllocaGlobalInstruction(addr, se, (*init_exprs)[i] ,builder->getInsertBB());
+            }
+            
+            se->setAddr(addr);
         }
-        else if(init_expr->isCTConstant()){
-            new AllocaGlobalInstruction(addr, se, init_expr ,builder->getInsertBB());
-        }
-        
-        se->setAddr(addr);
-    }
-    else if(se->isLocal())
-    {
-        Function *func = builder->getInsertBB()->getParent();
-        BasicBlock *entry = func->getEntry();
-        Instruction *alloca;
-        Operand *addr;
-        SymbolEntry *addr_se;
-        Type *type;
-        type = new PointerType(se->getType());
-        addr_se = new TemporarySymbolEntry(type, SymbolTable::getLabel());
-        addr = new Operand(addr_se);
-        alloca = new AllocaInstruction(addr, se);                   // allocate space for local id in function stack.
-        entry->insertFront(alloca);                                 // allocate instructions should be inserted into the begin of the entry block.
-        se->setAddr(addr);                                          // set the addr operand in symbol entry so that we can use it in subsequent code generation.
-        if(init_expr!=nullptr)
+        else if(se->isLocal())
         {
-            init_expr->genCode();
-            Operand *src = init_expr->getOperand();
-            new StoreInstruction(addr, src, builder->getInsertBB());
+            Function *func = builder->getInsertBB()->getParent();
+            BasicBlock *entry = func->getEntry();
+            Instruction *alloca;
+            Operand *addr;
+            SymbolEntry *addr_se;
+            Type *type;
+            type = new PointerType(se->getType());
+            addr_se = new TemporarySymbolEntry(type, SymbolTable::getLabel());
+            addr = new Operand(addr_se);
+            alloca = new AllocaInstruction(addr, se);                   // allocate space for local id in function stack.
+            entry->insertFront(alloca);                                 // allocate instructions should be inserted into the begin of the entry block.
+            se->setAddr(addr);                                          // set the addr operand in symbol entry so that we can use it in subsequent code generation.
+            if((*init_exprs)[i]!=nullptr)
+            {
+                (*init_exprs)[i]->genCode();
+                Operand *src = (*init_exprs)[i]->getOperand();
+                new StoreInstruction(addr, src, builder->getInsertBB());
+            }
         }
     }
+    
 }
 
 void ReturnStmt::genCode()
@@ -262,7 +359,14 @@ void ReturnStmt::genCode()
     BasicBlock *bb = builder->getInsertBB();
     retValue->genCode();
     Operand *src = retValue->getOperand();
-    new RetInstruction(src, bb);
+
+    Type* ret_type = bb->getParent()->getRet()->getType();
+    Type* ret_ptr_type = new PointerType(ret_type);
+    SymbolEntry *ret_addr = new TemporarySymbolEntry(ret_ptr_type, "__ret__");
+    Operand* ret_addr_op = new Operand(ret_addr);
+    new StoreInstruction(ret_addr_op, src, bb);
+    
+    new UncondBrInstruction(bb->getParent()->getExit(), bb);
     
 }
 
@@ -422,6 +526,32 @@ void UnaryExpr::typeCheck()
 void UnaryExpr::genCode()
 {
     // Todo
+    BasicBlock* bb = builder->getInsertBB();
+    expr->genCode();
+    Operand *src = expr->getOperand();
+    ConstantSymbolEntry::Variable z;
+    z.i = 0;
+    ConstantSymbolEntry::Variable o;
+    o.i = 1;
+    Operand *zero_src = new Operand(new ConstantSymbolEntry(TypeSystem::intType,z));
+    Operand *one_src = new Operand(new ConstantSymbolEntry(TypeSystem::intType,o));
+    switch(op){
+        case NEG:
+            new BinaryInstruction(BinaryInstruction::SUB, dst, zero_src, src, bb);
+            break;
+        case NOT:
+            new BinaryInstruction(BinaryInstruction::XOR, dst, src, zero_src, bb);
+            break;
+        case INC:
+            new BinaryInstruction(BinaryInstruction::ADD, dst, src, one_src, bb);
+            break;
+        case DEC:
+            new BinaryInstruction(BinaryInstruction::SUB, dst, src, one_src, bb);
+            break;
+        default:
+            break;
+    }
+    
 }
 
 void Constant::output(int level)
@@ -487,7 +617,7 @@ DeclStmt::DeclStmt(std::vector<SymbolEntry*>* ses)
     for(auto se : *ses)
     {
         Id* t = new Id(se);
-        Ids.push_back(t);
+        Ids->push_back(t);
     }
 }
 
@@ -495,7 +625,7 @@ void DeclStmt::output(int level)
 {
     fprintf(yyout, "%*cDeclStmt\n", level, ' ');
     // id->output(level + 4);
-    for (auto id : Ids)
+    for (auto id : *Ids)
         id->output(level + 4);
 }
 
@@ -578,6 +708,22 @@ void FunctionCall::typeCheck()
 void FunctionCall::genCode()
 {
     // Todo
+    BasicBlock* bb = builder->getInsertBB();
+    //check if function is sysy
+    if(dynamic_cast<IdentifierSymbolEntry*>(se)->is_SYSY()){
+        //BasicBlock* globalBB = builder->getGlobalBB();
+        //new DeclareExternFunctionInstruction(se,globalBB);
+    }
+    
+    std::vector<Operand*> args_op;
+    for(auto expr : args)
+    {
+        expr->genCode();
+        args_op.push_back(expr->getOperand());
+    }
+
+    //Operand* call_op = new Operand(se);
+    new CallInstruction(dst, se, args_op, bb);
 }
 
 void FuncCallStmt::output(int level)

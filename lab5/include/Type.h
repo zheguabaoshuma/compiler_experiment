@@ -5,10 +5,10 @@
 
 class Type
 {
-private:
+protected:
     int kind;
 protected:
-    enum {INT, VOID, FUNC, PTR, FLOAT};
+    enum {INT, VOID, FUNC, PTR, FLOAT, BOOL, CHAR};
 public:
     Type(int kind) : kind(kind) {};
     virtual ~Type() {};
@@ -18,6 +18,8 @@ public:
     bool isFunc() const {return kind == FUNC;};
     bool isPtr() const {return kind == PTR;};
     bool isFloat() const {return kind == FLOAT;};
+    bool isBool() const {return kind == BOOL;};
+    bool isChar() const {return kind == CHAR;};
 };
 
 class IntType : public Type
@@ -25,7 +27,7 @@ class IntType : public Type
 private:
     int size;
 public:
-    IntType(int size) : Type(Type::INT), size(size){};
+    IntType(int size) : Type(Type::INT), size(size){if(size == 1) kind = BOOL;if(size == 8) kind = CHAR;};
     std::string toStr();
 };
 
@@ -54,6 +56,7 @@ public:
     FunctionType(Type* returnType, std::vector<Type*> paramsType) : 
     Type(Type::FUNC), returnType(returnType), paramsType(paramsType){};
     Type* getRetType() {return returnType;};
+    std::vector<Type*> getParamsType() {return paramsType;};
     std::string toStr();
 };
 
@@ -66,6 +69,7 @@ public:
     std::string toStr();
 };
 
+
 class TypeSystem
 {
 private:
@@ -73,11 +77,12 @@ private:
     static IntType commonBool;
     static VoidType commonVoid;
     static FloatType commonFloat;
+    static IntType commonChar;
 public:
     static Type *intType;
     static Type *voidType;
     static Type *boolType;
     static Type *floatType;
+    static Type *charType;
 };
-
 #endif

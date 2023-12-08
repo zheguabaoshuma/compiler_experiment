@@ -1,5 +1,7 @@
 #include "BasicBlock.h"
 #include "Function.h"
+#include "BasicBlock.h"
+#include "Function.h"
 #include <algorithm>
 
 extern FILE* yyout;
@@ -37,8 +39,15 @@ void BasicBlock::remove(Instruction *inst)
 
 void BasicBlock::output() const
 {
-    if(!dynamic_cast<IdentifierSymbolEntry*>(this->parent->getSymPtr())->isGlobal())
+    if(head->getNext() == head)
+    {
+        fprintf(yyout, "\n");
+        return;
+    }
+    
+    if(dynamic_cast<IdentifierSymbolEntry*>(this->parent->getSymPtr())->toStr().compare("@global") != 0)
         fprintf(yyout, "B%d:", no);
+    
     if (!pred.empty())
     {
         fprintf(yyout, "%*c; preds = %%B%d", 32, '\t', pred[0]->getNo());
@@ -75,7 +84,8 @@ void BasicBlock::removePred(BasicBlock *bb)
 BasicBlock::BasicBlock(Function *f)
 {
     this->no = SymbolTable::getLabel();
-    f->insertBlock(this);
+    if(f != nullptr)
+        f->insertBlock(this);
     parent = f;
     head = new DummyInstruction();
     head->setParent(this);

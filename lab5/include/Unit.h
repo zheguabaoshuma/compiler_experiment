@@ -4,6 +4,8 @@
 #include <vector>
 #include "Function.h"
 
+class Function;
+
 class Unit
 {
     typedef std::vector<Function *>::iterator iterator;

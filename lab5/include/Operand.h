@@ -7,7 +7,6 @@
 class Instruction;
 class Function;
 
-
 // class Operand - The operand of an instruction.
 class Operand
 {
@@ -29,6 +28,8 @@ public:
     use_iterator use_begin() {return uses.begin();};
     use_iterator use_end() {return uses.end();};
     Type* getType() {return se->getType();};
+    Type* switch2PtrType(){Type* protoType = se->getType();se->setType(new PointerType(se->getType()));return protoType;};
+    Type* switch2ProtoType(Type* protoType){Type* ptrType = se->getType();se->setType(protoType);return ptrType;};
     std::string toStr() const;
 };
 

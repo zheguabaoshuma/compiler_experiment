@@ -1,15 +1,15 @@
-int g=3;
-double y=8.5;
-int main()
-{
-    int a;
-    int b;
-    int min;
-    a = 1 + 2 + 3;
-    b = 2 + 3 + 4;
-    if (a < b)
-        min = a;
-    else
-        min = b;
-    return min;
+int a;
+int getint(int u){
+	u=u+1;
+    return u+1;
+}
+int main(){
+	a = getint(a);
+    getint(a+1);
+	if( a>0 ){
+		return a+2;
+	}
+	else{
+		return 0;
+	}
 }

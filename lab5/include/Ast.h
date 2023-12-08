@@ -41,7 +41,7 @@ protected:
     Operand *dst;   // The result of the subtree is stored into dst.
     bool ctConstant = false;
 public:
-    ExprNode(SymbolEntry *symbolEntry) : symbolEntry(symbolEntry){};
+    ExprNode(SymbolEntry *symbolEntry) : symbolEntry(symbolEntry){dst = new Operand(symbolEntry);};
     Operand* getOperand() {return dst;};
     SymbolEntry* getSymPtr() {return symbolEntry;};
     double value = 0;
@@ -71,7 +71,7 @@ private:
     int op;
     ExprNode *expr1, *expr2;
 public:
-    enum {ADD, SUB, AND, OR, LESS, MUL, DIV, MOD, GREATER, LESSANDEQ, GREATERANDEQ, EQ, NOTEQ};
+    enum {ADD, SUB, AND, OR, XOR, LESS, GREATER, MUL, DIV, MOD, LESSANDEQ, GREATERANDEQ, EQ, NOTEQ};
     BinaryExpr(SymbolEntry *se, int op, ExprNode*expr1, ExprNode*expr2) : ExprNode(se), op(op), expr1(expr1), expr2(expr2){dst = new Operand(se);};
     void output(int level);
     void typeCheck();
@@ -85,7 +85,7 @@ private:
     ExprNode *expr;
 public:
     enum {NOT, NEG, INC, DEC, PLUS};
-    UnaryExpr(SymbolEntry *se, int op, ExprNode *expr) : ExprNode(se), op(op), expr(expr){};
+    UnaryExpr(SymbolEntry *se, int op, ExprNode *expr) : ExprNode(se), op(op), expr(expr){dst = new Operand(se);};
     void output(int level);
     void typeCheck();
     void genCode();
@@ -106,13 +106,17 @@ private:
     bool ArrayDeclInit;
     ExprsNode *exprs;
     int bias;//valid when se is a array entry, -1 means unknown index, 0 means not array
-
+    Operand* addr;
 public:
-    Id(SymbolEntry *se) : ExprNode(se){SymbolEntry *temp = new TemporarySymbolEntry(se->getType(), SymbolTable::getLabel()); dst = new Operand(temp);};
+    Id(SymbolEntry *se) : ExprNode(se){
+        SymbolEntry *temp = new TemporarySymbolEntry(se->getType(), SymbolTable::getLabel()); 
+        dst = new Operand(temp);
+
+        };
     void output(int level);
     void typeCheck();
     void genCode();
-
+    IdentifierSymbolEntry* getIdentifierSymbolEntry() {return dynamic_cast<IdentifierSymbolEntry*>(symbolEntry);}
     SymbolEntry* getSymbolEntry() {return symbolEntry;}
     void setBias(int bias) {this->bias = bias;}
     void setArrayDeclInit(ExprsNode* e) {ArrayDeclInit = true;exprs = e;}
@@ -167,18 +171,18 @@ class DeclStmt : public StmtNode
 {
 private:
     Id *id;
-    std::vector<Id*> Ids;
+    std::vector<Id*> *Ids;
     ExprNode *init_expr;
-    std::vector<ExprNode*> init_exprs;
+    std::vector<ExprNode*> *init_exprs;
 public:
-    DeclStmt(Id *id, ExprNode* init_expr = nullptr) : id(id), init_expr(init_expr){Ids.push_back(id);if(init_expr != nullptr)init_exprs.push_back(init_expr);};
+    DeclStmt(std::vector<Id*> *Ids, std::vector<ExprNode*> *init_exprs) : Ids(Ids), init_exprs(init_exprs){};
     void output(int level);
     void typeCheck();
     void genCode();
     
     DeclStmt(std::vector<SymbolEntry*>* ses);
-    void addId(Id *id) {Ids.push_back(id);}
-    void addInitExpr(ExprNode *init_expr) {init_exprs.push_back(init_expr);}
+    void addId(Id *id) {Ids->push_back(id);}
+    void addInitExpr(ExprNode *init_expr) {init_exprs->push_back(init_expr);}
 };
 
 class IfStmt : public StmtNode
@@ -265,8 +269,13 @@ private:
     SymbolEntry *se;
     StmtNode *stmt;
     std::vector<Id*> paras;
+    Operand* ret;
 public:
-    FunctionDef(SymbolEntry *se, StmtNode *stmt) : se(se), stmt(stmt){};
+    FunctionDef(SymbolEntry *se, StmtNode *stmt) : se(se), stmt(stmt){
+        FunctionType* funcType = dynamic_cast<FunctionType*>(se->getType());
+        Type *retType = funcType->getRetType();
+        ret = new Operand(new TemporarySymbolEntry(retType,"__ret__"));
+        };
     void output(int level);
     void typeCheck();
     void genCode();
@@ -295,7 +304,11 @@ private:
     SymbolEntry *se;
     std::vector<ExprNode*> args;
 public:
-    FunctionCall(SymbolEntry *se, std::vector<ExprNode*> args) : ExprNode(se), args(args){this->se = se;}
+    FunctionCall(SymbolEntry *se, std::vector<ExprNode*> args) : ExprNode(se), args(args)
+    {
+        this->se = se;
+        dst = new Operand(new TemporarySymbolEntry(dynamic_cast<FunctionType*>(se->getType())->getRetType(), SymbolTable::getLabel()));
+        };
     void output(int level);
     void typeCheck();
     void genCode();

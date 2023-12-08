@@ -3,6 +3,7 @@
 
 #include <string>
 #include <map>
+
 #include "Type.h"
 
 class Type;
@@ -46,8 +47,11 @@ public:
         {
             int i;
             float f;
+            bool b;
+            char c;
         } value;
     ConstantSymbolEntry(Type *type, ConstantSymbolEntry::Variable value);
+    ConstantSymbolEntry(Type* type);
     virtual ~ConstantSymbolEntry() {};
     union Variable getValue() const {return value;};
     std::string toStr();
@@ -90,8 +94,9 @@ private:
     int enumerate_size;
     void* _ptr_;
     int attribute;
+    bool is_sysy;
 public:
-    IdentifierSymbolEntry(Type *type, std::string name, int scope, bool constant=false);
+    IdentifierSymbolEntry(Type *type, std::string name, int scope, bool constant=false, bool sysy = false);
     virtual ~IdentifierSymbolEntry() {};
     std::string toStr();
     bool isGlobal() const {return attribute == GLOBAL;};
@@ -107,6 +112,7 @@ public:
     bool isArray() {return !enumerate_size==0;};
     int getArraySize() {return enumerate_size;};
     std::string getName() {return name;};
+    bool is_SYSY(){return is_sysy;};
 };
 
 
@@ -132,12 +138,15 @@ class TemporarySymbolEntry : public SymbolEntry
 {
 private:
     int label;
+    std::string name;
 public:
     TemporarySymbolEntry(Type *type, int label);
+    TemporarySymbolEntry(Type *type, std::string name);
     virtual ~TemporarySymbolEntry() {};
     std::string toStr();
     int getLabel() const {return label;};
     // You can add any function you need here.
+    std::string getName() {return name;};
 };
 
 // symbol table managing identifier symbol entries

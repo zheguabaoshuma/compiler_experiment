@@ -1,8 +1,6 @@
 #include "SymbolTable.h"
 #include <iostream>
 #include <sstream>
-#include <typeindex>
-#include <typeinfo>
 
 SymbolEntry::SymbolEntry(Type *type, int kind) 
 {
@@ -15,6 +13,26 @@ ConstantSymbolEntry::ConstantSymbolEntry(Type *type, ConstantSymbolEntry::Variab
     this->value = value;
 }
 
+ConstantSymbolEntry::ConstantSymbolEntry(Type *type) : SymbolEntry(type, SymbolEntry::CONSTANT)
+{
+    this->type = type;
+    //set value to 0 based on type
+    if (type->isInt()) {
+        value.i = 0;
+    } else if (type->isFloat()) {
+        value.f = 0.0;
+    }
+    else if(type->isBool()){
+        value.b = false;
+    }
+    else if(type->isChar()){
+        value.c = '\0';
+    }
+    else {
+        std::cout << "Error: unknown type of constant symbol entry." << std::endl;
+    }
+}
+
 std::string ConstantSymbolEntry::toStr()
 {
     std::ostringstream buffer;
@@ -22,16 +40,24 @@ std::string ConstantSymbolEntry::toStr()
         buffer << value.i;
     } else if (type->isFloat()) {
         buffer << value.f;
-    } else {
+    } 
+    else if(type->isBool()){
+        buffer << value.b;
+    }
+    else if(type->isChar()){
+        buffer << value.c;
+    }
+    else {
         std::cout << "Error: unknown type of constant symbol entry." << std::endl;
     }
     return buffer.str();
 }
 
-IdentifierSymbolEntry::IdentifierSymbolEntry(Type *type, std::string name, int scope, bool constant) : SymbolEntry(type, SymbolEntry::VARIABLE), name(name)
+IdentifierSymbolEntry::IdentifierSymbolEntry(Type *type, std::string name, int scope, bool constant, bool sysy) : SymbolEntry(type, SymbolEntry::VARIABLE), name(name)
 {
     this->scope = scope;
     this->constant = constant;
+    this->is_sysy = sysy;
     addr = nullptr;
     if(scope==0){
         attribute=GLOBAL;
@@ -54,11 +80,21 @@ TemporarySymbolEntry::TemporarySymbolEntry(Type *type, int label) : SymbolEntry(
     this->label = label;
 }
 
+TemporarySymbolEntry::TemporarySymbolEntry(Type *type, std::string name) : SymbolEntry(type, SymbolEntry::TEMPORARY)
+{
+    this->name = name;
+}
+
 std::string TemporarySymbolEntry::toStr()
 {
-    std::ostringstream buffer;
-    buffer << "%t" << label;
-    return buffer.str();
+    if(name.empty()) {
+        std::ostringstream buffer;
+        buffer << "%t" << label;
+        return buffer.str();
+    }
+    else {
+        return "%"+name;
+    }
 }
 
 SymbolTable::SymbolTable()

@@ -1,6 +1,6 @@
 #ifndef _BLOCKMERGE_H
 #define _BLOCKMERGE_H
-#include "Instruction.h"
+
 #include "Type.h"
 #include "Unit.h"
 #include <set>

@@ -1,7 +1,9 @@
+#include "Ast.h"
+#include "SymbolTable.h"
+#include "Unit.h"
 #include "Instruction.h"
-#include "BasicBlock.h"
-#include <iostream>
-#include "Function.h"
+#include "IRBuilder.h"
+#include <string>
 #include "Type.h"
 extern FILE* yyout;
 
@@ -86,6 +88,24 @@ void BinaryInstruction::output() const
         break;
     case SUB:
         op = "sub";
+        break;
+    case AND:
+        op = "and";
+        break;
+    case OR:
+        op = "or";
+        break;
+    case XOR:
+        op = "xor";
+        break;
+    case MUL:
+        op = "mul";
+        break;
+    case DIV:
+        op = "sdiv";
+        break;
+    case MOD:
+        op = "srem";
         break;
     default:
         break;
@@ -337,4 +357,58 @@ void AllocaGlobalInstruction::output() const
         fprintf(yyout, "  %s = global %s %d, align 4\n", dst.c_str(), type.c_str(), (int)init_expr->value);
     
     
+}
+
+CallInstruction::CallInstruction(Operand *dst, SymbolEntry *se, std::vector<Operand*> exprs, BasicBlock *insert_bb) : Instruction(CALL, insert_bb)
+{
+    operands.push_back(dst);
+    dst->setDef(this);
+    this->se = se;
+    for(auto i : exprs)
+    {
+        operands.push_back(i);
+        i->addUse(this);
+    }
+}
+
+CallInstruction::~CallInstruction()
+{
+    operands[0]->setDef(nullptr);
+    if(operands[0]->usersNum() == 0)
+        delete operands[0];
+}
+
+void CallInstruction::output() const
+{
+    std::string dst, type;
+    dst = operands[0]->toStr();
+    type = dynamic_cast<FunctionType*>(se->getType())->getRetType()->toStr();
+    fprintf(yyout, "  %s = call %s @%s(", dst.c_str(), type.c_str(), dynamic_cast<IdentifierSymbolEntry*>(se)->getName().c_str());
+    for(int i = 1; i < (int)operands.size(); i++)
+    {
+        std::string arg_type = operands[i]->getType()->toStr();
+        std::string arg = operands[i]->toStr();
+        fprintf(yyout, "%s %s", arg_type.c_str(), arg.c_str());
+        if(i != (int)operands.size() - 1)
+            fprintf(yyout, ", ");
+    }
+    fprintf(yyout, ")\n");
+}
+
+DeclareExternFunctionInstruction::DeclareExternFunctionInstruction(SymbolEntry *se, BasicBlock *insert_bb) : Instruction(DEFEXTF, insert_bb)
+{
+    this->se = se;
+}
+
+void DeclareExternFunctionInstruction::output() const
+{
+    fprintf(yyout, "declare %s @%s(", dynamic_cast<FunctionType*>(se->getType())->getRetType()->toStr().c_str(), dynamic_cast<IdentifierSymbolEntry*>(se)->getName().c_str());
+    for(int i = 0; i < (int)dynamic_cast<FunctionType*>(se->getType())->getParamsType().size(); i++)
+    {
+        std::string arg_type = dynamic_cast<FunctionType*>(se->getType())->getParamsType()[i]->toStr();
+        fprintf(yyout, "%s", arg_type.c_str());
+        if(i != (int)dynamic_cast<FunctionType*>(se->getType())->getParamsType().size() - 1)
+            fprintf(yyout, ", ");
+    }
+    fprintf(yyout, ")\n");
 }

@@ -4,6 +4,7 @@
 #include "SymbolTable.h"
 #include "Type.h"
 #include "Function.h"
+#include "Unit.h"
 #include "BasicBlock.h"
 
 class Unit;
@@ -20,7 +21,7 @@ private:
 public:
     IRBuilder(Unit* unit) : unit(unit) {
     std::vector<Type*> blankParas = {};
-    FunctionType* blankType = new FunctionType(TypeSystem::voidType, blankParas);
+    FunctionType* blankType = new FunctionType(TypeSystem::intType, blankParas);
     IdentifierSymbolEntry* GlobalSym = new IdentifierSymbolEntry(blankType, "global", 0);
     GlobalFunc = new Function(unit, GlobalSym);
     GlobalBB = new BasicBlock(GlobalFunc);

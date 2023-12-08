@@ -1,9 +1,17 @@
-//test
-int a = 3;
-int b = 5;
-
+int a;
+int foo(int y){
+	return y+1;
+}
 int main(){
-    int c=3;
-    int d=c+2;
-    return a + b;
+	a = 10;
+	a = foo(a);
+	int c=6;
+	c=c+c;
+	a=getint();
+	if( a>0 ){
+		return a;
+	}
+	else{
+		return 0;
+	}
 }

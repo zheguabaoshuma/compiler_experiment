@@ -15,6 +15,7 @@
     #include "Ast.h"
     #include "SymbolTable.h"
     #include "Type.h"
+    #include "Function.h"
 }
 
 %union {
@@ -26,7 +27,7 @@
     ExprsNode* exprs;
     FunctionDefParas* paras;
     Type* type;
-    std::vector<std::map<SymbolEntry*, ExprNode*>>* declIds;
+    std::vector<std::pair<SymbolEntry*, ExprNode*>>* declIds;
 }
 
 %start Program
@@ -389,7 +390,7 @@ RelExp
     |
     RelExp LESS AddExp
     {
-        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
+        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::LESS, $1, $3);
         $$->value = $1->value<$3->value ? 1:0;
         $$->setCTConstant($1->isCTConstant() && $3->isCTConstant());
@@ -397,7 +398,7 @@ RelExp
     |
     RelExp GREATER AddExp
     {
-        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
+        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::GREATER, $1, $3);
         $$->value = $1->value>$3->value ? 1:0;
         $$->setCTConstant($1->isCTConstant() && $3->isCTConstant());
@@ -405,7 +406,7 @@ RelExp
     |
     RelExp LESSANDEQ AddExp
     {
-        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
+        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::LESSANDEQ, $1, $3);
         $$->value = $1->value<=$3->value ? 1:0;
         $$->setCTConstant($1->isCTConstant() && $3->isCTConstant());
@@ -413,7 +414,7 @@ RelExp
     |
     RelExp GREATERANDEQ AddExp
     {
-        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
+        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::GREATERANDEQ, $1, $3);
         $$->value = $1->value>=$3->value ? 1:0;
         $$->setCTConstant($1->isCTConstant() && $3->isCTConstant());
@@ -421,7 +422,7 @@ RelExp
     |
     RelExp EQ AddExp
     {
-        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
+        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::EQ, $1, $3);
         $$->value = $1->value==$3->value ? 1:0;
         $$->setCTConstant($1->isCTConstant() && $3->isCTConstant());
@@ -429,7 +430,7 @@ RelExp
     |
     RelExp NOTEQ AddExp
     {
-        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
+        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se,BinaryExpr::NOTEQ, $1, $3);
         $$->value = $1->value!=$3->value ? 1:0;
         $$->setCTConstant($1->isCTConstant() && $3->isCTConstant());
@@ -440,7 +441,6 @@ LAndExp
     :
     RelExp {
         $$ = $1;
-
         }
     |
     LAndExp AND RelExp
@@ -481,87 +481,141 @@ Type
 DeclIds
     :
     ID {
-        $$ = new std::vector<SymbolEntry*>();
+        $$ = new std::vector<std::pair<SymbolEntry*,ExprNode*>>();
         SymbolEntry *se;
         se = new IdentifierSymbolEntry(TypeSystem::voidType, $1, identifiers->getLevel());
         identifiers->install($1, se);
-        ($$)->push_back(se);
+        ConstantSymbolEntry::Variable value;
+        value.i = 0;
+        Constant *z = new Constant(new ConstantSymbolEntry(TypeSystem::intType, value));
+        ($$)->push_back(std::make_pair(se,dynamic_cast<ExprNode*>(z)));
         delete []$1;
     }
     |
     ID ASSIGN Exp {
-        $$ = new std::vector<SymbolEntry*>();
+        $$ = new std::vector<std::pair<SymbolEntry*,ExprNode*>>();
         SymbolEntry *se;
         se = new IdentifierSymbolEntry(TypeSystem::voidType, $1, identifiers->getLevel());
         identifiers->install($1, se);
-        ($$)->push_back(se);
+        ($$)->push_back(std::make_pair(se,$3));
         delete []$1;
     }
     |
     ID LBRACKET INTEGER RBRACKET {
-        $$ = new std::vector<SymbolEntry*>();
-        SymbolEntry *se;
-        se = new IdentifierSymbolEntry(TypeSystem::voidType, $1, identifiers->getLevel());
-        dynamic_cast<IdentifierSymbolEntry*>(se)->setPointer($3, nullptr);
-        identifiers->install($1, se);
-        ($$)->push_back(se);
+        $$ = new std::vector<std::pair<SymbolEntry*,ExprNode*>>();
+        for(int i=0;i<$3;i++)
+        {
+            SymbolEntry *se;
+            std::string arrayName = $1;
+            arrayName += '[';
+            arrayName += std::to_string(i);
+            arrayName += ']';
+            se = new IdentifierSymbolEntry(TypeSystem::voidType, arrayName, identifiers->getLevel());
+            dynamic_cast<IdentifierSymbolEntry*>(se)->setPointer(1, nullptr);
+            identifiers->install($1, se);
+            ConstantSymbolEntry::Variable value;
+            value.i = 0;
+            Constant *z = new Constant(new ConstantSymbolEntry(TypeSystem::intType, value));
+            ($$)->push_back(std::make_pair(se,dynamic_cast<ExprNode*>(z)));
+        }
         delete []$1;
     }
     |
     ID LBRACKET INTEGER RBRACKET ASSIGN LBRACE Exps RBRACE {
-        $$ = new std::vector<SymbolEntry*>();
-        SymbolEntry *se;
-        se = new IdentifierSymbolEntry(TypeSystem::voidType, $1, identifiers->getLevel());
-        dynamic_cast<IdentifierSymbolEntry*>(se)->setPointer($3, nullptr);
-        identifiers->install($1, se);
-        ($$)->push_back(se);
-        if($7->getSize() > $3)
+        $$ = new std::vector<std::pair<SymbolEntry*,ExprNode*>>();
+        std::vector<ExprNode*> exps = $7->getExprs();
+        int ExpSize = exps.size();
+        for(int i=0;i<$3;i++)
         {
-            printf("too many initializer for array %s\n",$1);
-            return -1;
+            SymbolEntry *se;
+            std::string arrayName = $1;
+            arrayName += '[';
+            arrayName += std::to_string(i);
+            arrayName += ']';
+            se = new IdentifierSymbolEntry(TypeSystem::voidType, arrayName, identifiers->getLevel());
+            dynamic_cast<IdentifierSymbolEntry*>(se)->setPointer(1, nullptr);
+            identifiers->install($1, se);
+            if(i<ExpSize)
+            {
+                ($$)->push_back(std::make_pair(se,exps[i]));
+            }
+            else
+            {
+                ConstantSymbolEntry::Variable value;
+                value.i = 0;
+                Constant *z = new Constant(new ConstantSymbolEntry(TypeSystem::intType, value));
+                ($$)->push_back(std::make_pair(se,dynamic_cast<ExprNode*>(z)));
+            }
         }
         delete []$1;
     }
     |
     DeclIds COMMA ID {
+        $$ = $1;
         SymbolEntry *se;
         se = new IdentifierSymbolEntry(TypeSystem::voidType, $3, identifiers->getLevel());
         identifiers->install($3, se);
-        ($1)->push_back(se);
-        $$=$1;
+        ConstantSymbolEntry::Variable value;
+        value.i = 0;
+        Constant *z = new Constant(new ConstantSymbolEntry(TypeSystem::intType, value));
+        ($$)->push_back(std::make_pair(se,dynamic_cast<ExprNode*>(z)));
         delete []$3;
     }
     |
     DeclIds COMMA ID ASSIGN Exp {
+        $$ = $1;
         SymbolEntry *se;
         se = new IdentifierSymbolEntry(TypeSystem::voidType, $3, identifiers->getLevel());
         identifiers->install($3, se);
-        ($1)->push_back(se);
-        $$=$1;
+        ($$)->push_back(std::make_pair(se,$5));
         delete []$3;
     }
     |
     DeclIds COMMA ID LBRACKET INTEGER RBRACKET {
-        SymbolEntry *se;
-        se = new IdentifierSymbolEntry(TypeSystem::voidType, $3, identifiers->getLevel());
-        dynamic_cast<IdentifierSymbolEntry*>(se)->setPointer($5, nullptr);
-        identifiers->install($3, se);
-        ($1)->push_back(se);
-        $$=$1;
+        $$ = $1;
+        for(int i=0;i<$5;i++)
+        {
+            SymbolEntry *se;
+            std::string arrayName = $3;
+            arrayName += '[';
+            arrayName += std::to_string(i);
+            arrayName += ']';
+            se = new IdentifierSymbolEntry(TypeSystem::voidType, arrayName, identifiers->getLevel());
+            dynamic_cast<IdentifierSymbolEntry*>(se)->setPointer(1, nullptr);
+            identifiers->install($3, se);
+            ConstantSymbolEntry::Variable value;
+            value.i = 0;
+            Constant *z = new Constant(new ConstantSymbolEntry(TypeSystem::intType, value));
+            ($$)->push_back(std::make_pair(se,dynamic_cast<ExprNode*>(z)));
+        }
         delete []$3;
     }
     |
     DeclIds COMMA ID LBRACKET INTEGER RBRACKET ASSIGN LBRACE Exps RBRACE {
-        SymbolEntry *se;
-        se = new IdentifierSymbolEntry(TypeSystem::voidType, $3, identifiers->getLevel());
-        dynamic_cast<IdentifierSymbolEntry*>(se)->setPointer($5, nullptr);
-        identifiers->install($3, se);
-        ($1)->push_back(se);
-        $$=$1;
-        if($9->getSize() > $5)
+        $$ = $1;
+        std::vector<ExprNode*> exps = $9->getExprs();
+        int ExpSize = exps.size();
+        for(int i=0;i<$5;i++)
         {
-            printf("too many initializer for array %s\n",$3);
-            return -1;
+            SymbolEntry *se;
+            std::string arrayName = $3;
+            arrayName += '[';
+            arrayName += std::to_string(i);
+            arrayName += ']';
+            se = new IdentifierSymbolEntry(TypeSystem::voidType, arrayName, identifiers->getLevel());
+            dynamic_cast<IdentifierSymbolEntry*>(se)->setPointer(1, nullptr);
+            identifiers->install($3, se);
+            if(i<ExpSize)
+            {
+                ($$)->push_back(std::make_pair(se,exps[i]));
+            }
+            else
+            {
+                ConstantSymbolEntry::Variable value;
+                value.i = 0;
+                Constant *z = new Constant(new ConstantSymbolEntry(TypeSystem::intType, value));
+                ($$)->push_back(std::make_pair(se,dynamic_cast<ExprNode*>(z)));
+            }
         }
         delete []$3;
     }
@@ -569,6 +623,40 @@ DeclIds
 
 DeclStmt
     :
+    Type DeclIds SEMICOLON{
+        $$ = new DeclStmt(new std::vector<Id*>(), new std::vector<ExprNode*>());
+        std::vector<std::pair<SymbolEntry*,ExprNode*>> *declIdsAndInits = $2;
+        for(auto declIdAndInit:*declIdsAndInits)
+        {
+            SymbolEntry *declId = declIdAndInit.first;
+            declId->setType($1);
+            identifiers->install(dynamic_cast<IdentifierSymbolEntry*>(declId)->getName().c_str(), declId);
+            //printf("load id %s\n",dynamic_cast<IdentifierSymbolEntry*>(declId)->getName().c_str());
+            dynamic_cast<DeclStmt*>($$)->addId(new Id(declId));
+            if(declIdAndInit.second != nullptr)
+            {
+                dynamic_cast<DeclStmt*>($$)->addInitExpr(declIdAndInit.second);
+            }
+        }
+    }
+    |
+    CONST Type DeclIds SEMICOLON{
+        $$ = new DeclStmt(new std::vector<Id*>(), new std::vector<ExprNode*>());
+        std::vector<std::pair<SymbolEntry*,ExprNode*>> *declIdsAndInits = $3;
+        for(auto declIdAndInit:*declIdsAndInits)
+        {
+            SymbolEntry *declId = declIdAndInit.first;
+            declId->setType($2);
+            dynamic_cast<IdentifierSymbolEntry*>(declId)->setConstant(true);
+            identifiers->install(declId->toStr().c_str(), declId);
+            dynamic_cast<DeclStmt*>($$)->addId(new Id(declId));
+            if(declIdAndInit.second != nullptr)
+            {
+                dynamic_cast<DeclStmt*>($$)->addInitExpr(declIdAndInit.second);
+            }
+        }
+    }
+    /* |
     Type ID SEMICOLON {
         SymbolEntry *se;
         se = new IdentifierSymbolEntry($1, $2, identifiers->getLevel());
@@ -706,7 +794,7 @@ DeclStmt
             identifiers->install(declId->toStr().c_str(), declId);
             dynamic_cast<DeclStmt*>($$)->addId(new Id(declId));
         }
-    }
+    } */
     ;
 
 FuncDefParas
@@ -783,7 +871,8 @@ FuncDef
         for(auto para:paras)
         {
             SymbolEntry *pse=para->getSymbolEntry();
-            identifiers->install(pse->toStr().c_str(), pse);
+            identifiers->install(dynamic_cast<IdentifierSymbolEntry*>(pse)->getName().c_str(), pse);
+            //printf("load para %s\n",dynamic_cast<IdentifierSymbolEntry*>(pse)->getName().c_str());
         }
         isFuncDef = true;
         funcParaTable = identifiers;

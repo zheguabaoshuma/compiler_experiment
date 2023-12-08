@@ -31,7 +31,7 @@ protected:
     Instruction *next;
     BasicBlock *parent;
     std::vector<Operand*> operands;
-    enum {BINARY, COND, UNCOND, RET, LOAD, STORE, CMP, ALLOCA};
+    enum {BINARY, COND, UNCOND, RET, LOAD, STORE, CMP, ALLOCA, CALL, DEFEXTF};
 };
 
 // meaningless instruction, used as the head node of the instruction list.
@@ -75,6 +75,28 @@ public:
     std::vector<Operand *> getUse() { return {operands[1]}; }
 };
 
+class CallInstruction : public Instruction
+{
+public:
+    CallInstruction(Operand *dst, SymbolEntry *se, std::vector<Operand*> exprs, BasicBlock *insert_bb = nullptr);
+    ~CallInstruction();
+    void output() const;
+    Operand *getDef() { return operands[0]; }
+    std::vector<Operand *> getUse() { return operands; }
+private:
+    SymbolEntry *se;
+};
+
+class DeclareExternFunctionInstruction : public Instruction
+{
+public:
+    DeclareExternFunctionInstruction(SymbolEntry *se, BasicBlock *insert_bb = nullptr);
+    ~DeclareExternFunctionInstruction(){};
+    void output() const;
+private:
+    SymbolEntry *se;
+};
+
 class StoreInstruction : public Instruction
 {
 public:
@@ -90,7 +112,7 @@ public:
     BinaryInstruction(unsigned opcode, Operand *dst, Operand *src1, Operand *src2, BasicBlock *insert_bb = nullptr);
     ~BinaryInstruction();
     void output() const;
-    enum {SUB, ADD, AND, OR};
+    enum {ADD, SUB, AND, OR, XOR, MUL, DIV, MOD};
     Operand *getDef() { return operands[0]; }
     std::vector<Operand *> getUse() { return {operands[1], operands[2]}; }
 };

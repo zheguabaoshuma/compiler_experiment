@@ -5,11 +5,13 @@ IntType TypeSystem::commonInt = IntType(32);
 IntType TypeSystem::commonBool = IntType(1);
 VoidType TypeSystem::commonVoid = VoidType();
 FloatType TypeSystem::commonFloat = FloatType(32);
+IntType TypeSystem::commonChar = IntType(8);
 
 Type* TypeSystem::intType = &commonInt;
 Type* TypeSystem::voidType = &commonVoid;
 Type* TypeSystem::boolType = &commonBool;
 Type* TypeSystem::floatType = &commonFloat;
+Type* TypeSystem::charType = &commonChar;
 
 std::string IntType::toStr()
 {

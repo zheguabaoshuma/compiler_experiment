@@ -57,9 +57,7 @@ Program
     : Stmts {
         ast.setRoot($1);
     }
-    | error SEMICOLON{
-        return -1;
-    }
+    
     ;
 Stmts
     : Stmt {$$=$1;}
@@ -78,7 +76,7 @@ Stmt
     | ReturnStmt {$$=$1;}
     | DeclStmt {$$=$1;}
     | FuncDef {$$=$1;}
-    | CommentStmt Stmt{$$=$2;}
+    | CommentStmt{$$=new CompoundStmt(nullptr);}
     /* | FuncCallStmt {$$=$1;} */
     | BreakStmt {$$=$1;}
     | ContinueStmt {$$=$1;}
@@ -192,6 +190,7 @@ IfStmt
     }
     | IF LPAREN Cond RPAREN Stmt ELSE Stmt {
         $$ = new IfElseStmt($3, $5, $7);
+        // printf("in ifelse\n");
     }
     |
     IF LPAREN Cond RPAREN SEMICOLON{
@@ -202,7 +201,7 @@ IfStmt
 WhileStmt
     : WHILE LPAREN Cond RPAREN Stmt {
         $$ = new WhileStmt($3, $5);
-        //printf("in while\n");
+        // printf("in while\n");
     }
     |
     WHILE LPAREN Cond RPAREN SEMICOLON{
@@ -214,6 +213,7 @@ ReturnStmt
     :
     RETURN Exp SEMICOLON{
         $$ = new ReturnStmt($2);
+        //printf("in return\n");
     }
     ;
 
@@ -561,6 +561,7 @@ DeclStmt
         identifiers->install($2, se);
         $$ = new DeclStmt(new Id(se));
         delete []$2;
+        //printf("in DeclStmt\n");
     }
     |
     Type ID COMMA DeclIds SEMICOLON {

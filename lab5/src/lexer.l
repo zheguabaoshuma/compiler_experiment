@@ -5,6 +5,16 @@
     #include <stdarg.h>
     #include "common.h"
     #include "parser.h"
+    #include "Type.h"
+    extern FILE *yyin; 
+    extern FILE *yyout;
+    int chars = 0;
+    void DEBUG_FOR_LAB4(std::string s){
+        std::string DEBUG_INFO = "[DEBUG LAB4]: \t" + s + "\n";
+        fputs(DEBUG_INFO.c_str(), yyout);
+    }
+    #include<iostream>
+    using namespace std;
 }
 %{
     extern dump_type_t dump_type;
@@ -210,6 +220,128 @@ WHITE [\t ]
     dump_tokens("MOD\t%s\n", yytext);
     return MOD;
 }
+
+"putint" {
+    dump_tokens("PUTINT",yytext);
+    char *lexeme;
+    lexeme = new char[strlen(yytext) + 1];
+    strcpy(lexeme, yytext);
+    yylval.strtype = lexeme;
+    std::vector<Type*> vec;
+    vec.push_back(TypeSystem::intType);
+    Type* funcType = new FunctionType(TypeSystem::voidType, vec);
+    SymbolTable* st = identifiers;
+    while(st->getPrev())
+        st = st->getPrev();
+    SymbolEntry* se = new IdentifierSymbolEntry(funcType, yytext, st->getLevel(), false, true);
+    st->install(yytext, se);
+    return ID;
+}
+
+"getint" {
+    dump_tokens("GETINT",yytext);
+    char *lexeme;
+    lexeme = new char[strlen(yytext) + 1];
+    strcpy(lexeme, yytext);
+    yylval.strtype = lexeme;
+    std::vector<Type*> vec;
+    std::vector<SymbolEntry*> vec1;
+    Type* funcType = new FunctionType(TypeSystem::intType, vec);
+    SymbolTable* st = identifiers;
+    while(st->getPrev())
+        st = st->getPrev();
+    SymbolEntry* se = new IdentifierSymbolEntry(funcType, yytext, st->getLevel(), false, true);
+    st->install(yytext, se);
+    return ID;
+}
+"putch" {
+    dump_tokens("PUTCH",yytext);
+    char *lexeme;
+    lexeme = new char[strlen(yytext) + 1];
+    strcpy(lexeme, yytext);
+    yylval.strtype = lexeme;
+    std::vector<Type*> vec;
+    vec.push_back(TypeSystem::intType);
+    Type* funcType = new FunctionType(TypeSystem::voidType, vec);
+    SymbolTable* st = identifiers;
+    while(st->getPrev())
+        st = st->getPrev();
+    SymbolEntry* se = new IdentifierSymbolEntry(funcType, yytext, st->getLevel(), false, true);
+    st->install(yytext, se);
+    return ID;
+}
+"getch" {
+    dump_tokens("GETCH",yytext);
+    char *lexeme;
+    lexeme = new char[strlen(yytext) + 1];
+    strcpy(lexeme, yytext);
+    yylval.strtype = lexeme;
+    std::vector<Type*> vec;
+    Type* funcType = new FunctionType(TypeSystem::intType, vec);
+    SymbolTable* st = identifiers;
+    while(st->getPrev())
+        st = st->getPrev();
+    SymbolEntry* se = new IdentifierSymbolEntry(funcType, yytext, st->getLevel(), false, true);
+    st->install(yytext, se);
+    return ID;
+}
+
+"putf" {
+    dump_tokens("PUTF",yytext);
+    char *lexeme;
+    lexeme = new char[strlen(yytext) + 1];
+    strcpy(lexeme, yytext);
+    yylval.strtype = lexeme;
+    std::vector<Type*> vec;
+    vec.push_back(TypeSystem::floatType);
+    Type* funcType = new FunctionType(TypeSystem::voidType,vec);
+    SymbolTable* st = identifiers;
+    while(st->getPrev())
+        st = st->getPrev();
+    SymbolEntry* se = new IdentifierSymbolEntry(funcType, yytext, st->getLevel(), false, true);
+    st->install(yytext, se);
+    return ID;
+}
+"starttime" {
+    dump_tokens("STARTTIME",yytext);
+    char *lexeme;
+    lexeme = new char[6 + strlen(yytext) + 1];
+    char* sysy = (char *)"_sysy_";
+    strcpy(lexeme, sysy);
+    strcpy(lexeme + 6, yytext);
+    yylval.strtype = lexeme;
+    std::vector<Type*> vec;
+    Type* funcType = new FunctionType(TypeSystem::voidType, vec);
+    SymbolTable* st = identifiers;
+    while(st->getPrev())
+        st = st->getPrev();
+    char *temp = new char[6+strlen(yytext)];
+    memcpy(temp, lexeme, 6+strlen(yytext));
+    SymbolEntry* se = new IdentifierSymbolEntry(funcType, temp, st->getLevel(), false, true);
+    st->install(temp, se);
+    return ID;
+}
+"stoptime" {
+    dump_tokens("STOPTIME",yytext);
+    char *lexeme;
+    lexeme = new char[6 + strlen(yytext) + 1];
+    char* sysy = (char*)"_sysy_";
+    strcpy(lexeme, sysy);
+    strcpy(lexeme + 6, yytext);
+    yylval.strtype = lexeme;
+    std::vector<Type*> vec;
+    Type* funcType = new FunctionType(TypeSystem::voidType, vec);
+    SymbolTable* st = identifiers;
+    while(st->getPrev())
+        st = st->getPrev();
+    char *temp = new char[6+strlen(yytext)];
+    memcpy(temp, lexeme, 14);
+    SymbolEntry* se = new IdentifierSymbolEntry(funcType, temp, st->getLevel(), false, true);
+    st->install(temp, se);
+    return ID;
+}
+
+
 
 {DECIMIAL} {
     int decimal;

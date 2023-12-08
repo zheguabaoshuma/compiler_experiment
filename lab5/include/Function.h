@@ -11,6 +11,7 @@
 
 class Unit;
 
+
 class Function
 {
     typedef std::vector<BasicBlock *>::iterator iterator;
@@ -20,8 +21,13 @@ private:
     std::vector<BasicBlock *> block_list;
     SymbolEntry *sym_ptr;
     BasicBlock *entry;
+    BasicBlock *exit;
     Unit *parent;
-
+    Operand *ret_val;
+    std::vector<Id*> paras;
+    std::vector<TemporarySymbolEntry*> paras_se;
+    std::vector<Operand*> paras_addr;
+    std::vector<Operand*> paras_op;
 public:
     Function(Unit * u, SymbolEntry * s, BasicBlock * bb= nullptr);
     ~Function();
@@ -36,6 +42,15 @@ public:
     reverse_iterator rbegin() { return block_list.rbegin(); };
     reverse_iterator rend() { return block_list.rend(); };
     SymbolEntry *getSymPtr() { return sym_ptr; };
+    Operand* getRet() { return ret_val; };
+    void setRet(Operand* op) { ret_val = op; };
+    void setExit(BasicBlock* bb) { exit = bb; };
+    BasicBlock* getExit() { return exit; };
+    void setParas(std::vector<Id*> paras);
+    std::vector<Id*> getParas(){return paras;};
+    std::vector<TemporarySymbolEntry*> getParasSe(){return paras_se;};
+    std::vector<Operand*> getParasAddr(){return paras_addr;};
+    std::vector<Operand*> getParasOp(){return paras_op;};
 };
 
 #endif

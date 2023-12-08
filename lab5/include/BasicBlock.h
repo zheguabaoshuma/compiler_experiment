@@ -43,6 +43,7 @@ public:
     bb_iterator pred_end() { return pred.end(); };
     int getNumOfPred() const { return pred.size(); };
     int getNumOfSucc() const { return succ.size(); };
+    void setParent(Function *f) { parent = f; };
 };
 
 #endif
